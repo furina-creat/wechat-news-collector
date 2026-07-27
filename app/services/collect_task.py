@@ -36,7 +36,7 @@ class CollectScheduler:
                     self._check_and_collect()
                 except Exception as e:
                     print(f"调度循环异常: {e}")
-            time.sleep(60)  # 每分钟检查一次
+            time.sleep(300)  # 每分钟检查一次
     
     def _check_and_collect(self):
         """检查各新闻源是否需要采集"""

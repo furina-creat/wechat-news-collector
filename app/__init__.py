@@ -287,34 +287,4 @@ def create_app(config_class='app.config.Config'):
         except Exception as e:
             return jsonify({'code':500,'message':str(e)})
 
-    # 自动补充种子文章（每次启动执行）
-    with app.app_context():
-        from app.models import NewsArticle, NewsSource
-        from datetime import datetime
-        seeds = [
-            ("考研国家线公布","2026年考研国家线公布","考公考研"),
-            ("行测备考攻略","行测四大模块备考方法","考公考研"),
-            ("考研英语阅读策略","阅读占考研英语40%","考公考研"),
-            ("考研数学复习规划","高数线代概率复习法","考公考研"),
-            ("政治时政重点","关注经济会议科技创新","考公考研"),
-            ("国考报名启动","2026年国考10月启动","考公考研"),
-            ("秋招时间线与策略","校招7-11月准备重点","应届求职"),
-            ("大厂面试经验","BAT面试全流程","应届求职"),
-            ("简历优化指南","STAR法则量化成果","应届求职"),
-            ("薪资谈判技巧","着眼总包而非月薪","应届求职"),
-            ("A股三大指数收跌","上证跌1.2%","股票市场"),
-            ("港股科技股大涨","恒生科技涨超3%","股票市场"),
-            ("基金市场周报","基金收益率上涨","股票市场"),
-        ]
-        added = 0
-        for t,c,cat in seeds:
-            if not NewsArticle.query.filter_by(title=t).first():
-                db.session.add(NewsArticle(title=t,content=c,category=cat,
-                    source_site='澎湃新闻',url='https://www.baidu.com/s?wd='+t[:6],
-                    collected_at=datetime.now()))
-                added += 1
-        if added:
-            db.session.commit()
-            print(f"种子: {added} 篇")
-    
     return app
