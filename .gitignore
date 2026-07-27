@@ -1,0 +1,9 @@
+instance/
+*.pyc
+__pycache__/
+build/
+dist/
+*.command
+.env
+.DS_Store
+.idea/

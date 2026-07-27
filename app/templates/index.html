@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>微信与新闻信息采集系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+body{background:#f1f5f9;color:#1e293b}
+.app{display:flex;flex-direction:column;height:100vh}
+.top{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:#fff;border-bottom:1px solid #e2e8f0}
+.top h1{font-size:18px;font-weight:600;color:#1a73e8}
+.stat{font-size:13px;color:#64748b;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block}
+.body{display:flex;flex:1;overflow:hidden}
+.nav{width:200px;background:#1e293b;padding:12px 0}
+.nav a{display:block;padding:10px 20px;color:#94a3b8;text-decoration:none;font-size:14px;cursor:pointer}
+.nav a:hover{background:rgba(255,255,255,0.08);color:#e2e8f0}
+.nav a.on{background:rgba(255,255,255,0.12);color:#fff;border-left:3px solid #1a73e8}
+.content{flex:1;overflow-y:auto;padding:24px}
+.sep{border-top:1px solid rgba(255,255,255,0.1);margin:8px 16px;padding-top:8px}
+.sl{color:#64748b;font-size:11px;padding:4px 20px}
+h2{font-size:20px;font-weight:600;margin-bottom:20px}
+.card{background:#fff;border-radius:8px;border:1px solid #e2e8f0;padding:20px;margin-bottom:16px}
+.ch{font-size:15px;font-weight:600;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.sc{background:#fff;border-radius:8px;border:1px solid #e2e8f0;padding:20px;text-align:center}
+.sn{font-size:32px;font-weight:700;color:#1a73e8}
+.sl2{font-size:13px;color:#64748b;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:10px 12px;border-bottom:2px solid #e2e8f0;color:#64748b;font-weight:600;font-size:12px}
+td{padding:10px 12px;border-bottom:1px solid #e2e8f0}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;border:1px solid #d1d5db;font-size:14px;cursor:pointer;background:#fff;color:#374151;text-decoration:none}
+.bp{background:#1a73e8;color:#fff;border-color:#1a73e8}
+.bg{background:#22c55e;color:#fff;border-color:#22c55e}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500}
+.ta{background:#dcfce7;color:#166534}
+.ti{background:#f3f4f6;color:#6b7280}
+.td{background:#fee2e2;color:#991b1b}
+.load{text-align:center;padding:60px;color:#64748b}
+.fg{margin-bottom:16px}
+.fl{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
+.fi{width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;outline:none}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.alert{padding:12px 16px;border-radius:6px;margin-bottom:16px;font-size:14px}
+.as{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+.ae{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.em{text-align:center;padding:40px;color:#64748b}
+.mo{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:1000}
+.mb{background:#fff;border-radius:12px;width:90%;max-width:560px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #e2e8f0}
+.mt{font-size:16px;font-weight:600}
+.mc{background:none;border:none;font-size:20px;cursor:pointer;color:#64748b}
+.md{padding:20px}
+.sbox{display:flex;gap:12px;margin-bottom:16px}
+.sbox .fi{max-width:400px}
+/* ====== 特效 ====== */
+@keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideIn { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+@keyframes shimmer { 0%{background-position:-200px 0} 100%{background-position:calc(200px + 100%) 0} }
+@keyframes spin { to{transform:rotate(360deg)} }
+@keyframes slideDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes countUp { from{opacity:0;transform:scale(0.5)} to{opacity:1;transform:scale(1)} }
+@keyframes dotPulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+.page-content{animation:fadeIn 0.4s ease-out}
+.nav a{transition:all 0.25s cubic-bezier(0.4,0,0.2,1)}
+.nav a:hover{padding-left:28px;background:rgba(255,255,255,0.12)}
+.card{transition:all 0.3s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,0.1)}
+.card::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:3px;background:linear-gradient(90deg,transparent,#1a73e8,transparent);transition:left 0.6s}
+.card:hover::before{left:100%}
+.sc{transition:all 0.3s cubic-bezier(0.4,0,0.2,1);cursor:default}
+.sc:hover{transform:translateY(-4px);box-shadow:0 12px 35px rgba(26,115,232,0.15)}
+.sc .sn{transition:all 0.3s}
+.sc:hover .sn{transform:scale(1.1);color:#1557b0}
+.btn{transition:all 0.25s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+.btn:active{transform:translateY(0)}
+.btn::after{content:'';position:absolute;top:50%;left:50%;width:0;height:0;border-radius:50%;background:rgba(255,255,255,0.3);transition:width 0.4s,height 0.4s,top 0.4s,left 0.4s}
+.btn:active::after{width:200px;height:200px;top:-80px;left:-80px}
+.tag{transition:all 0.2s}
+tr{transition:background 0.2s}
+tr:hover td{background:#f0f7ff!important}
+.load{animation:fadeIn 0.6s ease-out infinite alternate}
+.load::after{content:'...';animation:dotPulse 1.5s infinite}
+.status-dot{animation:pulse 2s infinite}
+.modal{animation:slideDown 0.3s ease-out}
+table tr{animation:fadeIn 0.3s ease-out;animation-fill-mode:both}
+table tr:nth-child(1){animation-delay:0s}
+table tr:nth-child(2){animation-delay:0.05s}
+table tr:nth-child(3){animation-delay:0.1s}
+.loading-spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#1a73e8;border-radius:50%;animation:spin 0.8s linear infinite;margin:20px auto}
+.loading-spinner + .load-text{text-align:center;color:#64748b;font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="top">
+  <h1>📡 采集管理系统</h1>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="stat" id="userArea">
+      <span class="dot" id="sd"></span>
+      <span id="st">就绪</span>
+    </div>
+    <div id="loginBtn" style="display:none">
+      <button class="btn bp" style="padding:4px 12px;font-size:12px" onclick="showLogin()">登录 / 注册</button>
+    </div>
+    <div id="userInfo" style="display:none;align-items:center;gap:8px">
+      <span style="font-size:13px;color:#64748b" id="userNick"></span>
+      <button class="btn" style="padding:2px 8px;font-size:11px;color:#1a73e8;border-color:#1a73e8" onclick="showWechatBind()">绑定微信</button>
+      <button class="btn" style="padding:2px 8px;font-size:11px" onclick="logout()">退出</button>
+    </div>
+  </div>
+</div>
+<div class="body">
+<div class="nav" id="nav"></div>
+<div class="content" id="content"><div class="page-content" id="pageContentWrap"></div>
+</div></div>
+<div class="mo" id="mo"><div class="mb"><div class="mh"><span class="mt" id="mtt"></span><button class="mc" onclick="cm()">✕</button></div><div class="md" id="mdb"></div></div></div>
+
+<script>
+// ====== App State ======
+var pg = 'dashboard';
+
+// ====== Init ======
+function init() {
+  renderNav();
+  renderPage(pg);
+  fetch('/api/status').then(function(r){return r.json()}).then(function(d){
+    document.getElementById('sd').style.background='#22c55e';
+    document.getElementById('st').textContent='已连接';
+  }).catch(function(){
+    document.getElementById('sd').style.background='#ef4444';
+    document.getElementById('st').textContent='未连接';
+  });
+}
+
+// ====== Navigation ======
+var navItems = [
+  {id:'dashboard',title:'📊 数据概览'},
+  {id:'wechat',title:'💬 微信采集'},
+  {id:'sources',title:'📰 新闻源管理'},
+  {id:'collect',title:'⚡ 手动采集'},
+  {id:'search',title:'🔍 信息检索'},
+  {id:'export',title:'📥 数据导出'},
+  {sep:true},
+  {id:'kaoyan',title:'📚 考公考研'},
+  {id:'job',title:'💼 应届求职'},
+  {id:'stock',title:'📈 股票市场'},
+];
+
+function renderNav() {
+  var h = '';
+  for (var i = 0; i < navItems.length; i++) {
+    var item = navItems[i];
+    if (item.sep) { h += '<div class="sep"></div><div class="sl">📌 分类浏览</div>'; continue; }
+    h += '<a id="nv-'+item.id+'" class="'+(pg===item.id?'on':'')+'" onclick="go(\''+item.id+'\')">'+item.title+'</a>';
+  }
+  document.getElementById('nav').innerHTML = h;
+}
+
+function go(id) {
+  pg = id;
+  renderNav();
+  renderPage(id);
+}
+
+// ====== Page Router ======
+function renderPage(id) {
+  var el = document.getElementById('content');
+  el.innerHTML = '<div class="loading-spinner"></div><div class="load-text">加载中...</div>';
+  if (id === 'dashboard') renderDashboard(el);
+  else if (id === 'wechat') renderWechat(el);
+  else if (id === 'sources') renderSources(el);
+  else if (id === 'collect') renderCollect(el);
+  else if (id === 'search') renderSearch(el);
+  else if (id === 'export') renderExport(el);
+  else if (id === 'kaoyan') renderCategory(el, '考公考研');
+  else if (id === 'job') renderCategory(el, '应届求职');
+  else if (id === 'stock') renderCategory(el, '股票市场');
+}
+
+// ====== Dashboard ======
+function renderDashboard(el) {
+  fetchAndRender(el, [
+    fetch('/api/source/').then(function(r){return r.json()}),
+    fetch('/api/search/news?q=').then(function(r){return r.json()})
+  ], function(responses) {
+    var srcs = responses[0].data || [];
+    var total = 0;
+    try { total = responses[1].data.total || 0; } catch(e) {}
+    var active = srcs.filter(function(s){return s.status==='启用'}).length;
+    var html = '<h2>📊 数据概览</h2><div class="grid">'
+      + '<div class="sc"><div class="sn">'+srcs.length+'</div><div class="sl2">新闻源总数</div></div>'
+      + '<div class="sc"><div class="sn">'+active+'</div><div class="sl2">活跃源数</div></div>'
+      + '<div class="sc"><div class="sn">'+total+'</div><div class="sl2">采集新闻数</div></div></div>';
+    if (srcs.length) {
+      html += '<div class="card"><div class="ch">新闻源列表</div><table><tr><th>名称</th><th>类型</th><th>状态</th><th>频率</th></tr>';
+      for (var i = 0; i < srcs.length; i++) {
+        var s = srcs[i];
+        var tc = s.type==='RSS'?'ta':'ti';
+        var sc = s.status==='启用'?'ta':(s.status==='失效'?'td':'ti');
+        html += '<tr><td>'+s.name+'</td><td><span class="tag '+tc+'">'+s.type+'</span></td>'
+          + '<td><span class="tag '+sc+'">'+s.status+'</span></td><td>'+s.interval+'分钟</td></tr>';
+      }
+      html += '</table></div>';
+    } else {
+      html += '<div class="em">暂无新闻源，请前往新闻源管理添加</div>';
+    }
+    el.innerHTML = html;
+  });
+}
+
+// ====== Category Pages ======
+function renderCategory(el, cat) {
+  var html = '<h2>'+cat+'</h2>'
+    + '<div style="display:flex;gap:12px;margin-bottom:16px"><button class="btn bp" onclick="refreshCat(\''+cat+'\')">🔄 刷新内容</button></div>'
+    + '<div id="cats"></div>'
+    + '<div style="margin-top:16px"><div class="ch">最新文章</div><div id="cata"></div></div>';
+  el.innerHTML = html;
+  loadCategory(cat);
+}
+
+function loadCategory(cat) {
+  fetchAndRender(null, [
+    fetch('/api/search/sources_by_category?category='+encodeURIComponent(cat)).then(function(r){return r.json()}),
+    fetch('/api/search/by_category?category='+encodeURIComponent(cat)).then(function(r){return r.json()})
+  ], function(responses) {
+    var srcs = responses[0].data || [];
+    var se = document.getElementById('cats');
+    if (se) {
+      if (srcs.length) {
+        var h = '<table><tr><th>名称</th><th>类型</th><th>状态</th></tr>';
+        for (var i = 0; i < srcs.length; i++) {
+          h += '<tr><td>'+srcs[i].name+'</td><td><span class="tag '+(srcs[i].type==='RSS'?'ta':'ti')+'">'+srcs[i].type+'</span></td>'
+            + '<td><span class="tag '+(srcs[i].status==='启用'?'ta':'ti')+'">'+srcs[i].status+'</span></td></tr>';
+        }
+        se.innerHTML = h + '</table>';
+      } else {
+        se.innerHTML = '<div class="em">暂无此分类的新闻源</div>';
+      }
+    }
+    
+    var items = responses[1].data.items || [];
+    var ae = document.getElementById('cata');
+    if (ae) {
+      if (items.length) {
+        var h2 = '<table><tr><th>标题</th><th>来源</th><th>时间</th></tr>';
+                for (var i = 0; i < items.length; i++) {
+          var t = items[i].publish_time ? new Date(items[i].publish_time).toLocaleDateString() : '-';
+          var linkHtml = items[i].title;
+          if (items[i].url) {
+            linkHtml = '<a href="'+items[i].url+'" target="_blank" style="color:#1a73e8;text-decoration:none">'+items[i].title+'</a>';
+          }
+          if (items[i].url && items[i].url.indexOf('36kr.com') > -1) {
+            linkHtml = '<a href="'+items[i].url+'" target="_blank" style="color:#1a73e8;text-decoration:none">'+items[i].title+'</a>';
+          }
+          h2 += '<tr><td>'+linkHtml+'</td><td>'+(items[i].source||'-')+'</td><td>'+t+'</td></tr>';
+        }
+        ae.innerHTML = h2 + '</table>';
+      } else {
+        ae.innerHTML = '<div class="em"><p>暂无文章</p></div>';
+      }
+    }
+  });
+}
+
+function refreshCat(cat) {
+  var ae = document.getElementById('cata');
+  if (ae) ae.innerHTML = '<div class="loading-spinner"></div><div class="load-text">刷新中...</div>';
+  loadCategory(cat);
+}
+
+// ====== Wechat ======
+function renderWechat(el) {
+  // 检测是否配置了微信开放平台
+  fetch('/api/wechat/oauth_url').then(function(r){return r.json()}).then(function(data){
+    var cfg = data.data || {};
+    var html = '<h2>💬 微信信息采集</h2>';
+    
+    // 配置状态提示
+    if (cfg.is_configured) {
+      html += '<div class="alert as">✅ 微信开放平台已配置，可进行真实授权</div>';
+    } else {
+      html += '<div class="alert" style="background:#fff3cd;color:#856404;border:1px solid #ffeeba">'
+        + '🚧 模拟模式：未配置微信开放平台，使用模拟数据。'
+        + '<br>配置方式：编辑 .env 文件填入 WECHAT_APP_ID 和 WECHAT_APP_SECRET</div>';
+    }
+    
+    // OAuth 授权区域
+    html += '<div class="card"><div class="ch">授权采集</div>';
+    
+    if (cfg.is_configured) {
+      // 有真实配置 - 显示扫码链接
+      html += '<p style="color:#64748b;margin-bottom:16px;font-size:14px">点击下方按钮跳转微信扫码授权</p>'
+        + '<a href="'+cfg.oauth_url+'" target="_blank" class="btn bp" style="margin-bottom:16px">📱 微信扫码授权</a>'
+        + '<p style="color:#64748b;margin-bottom:8px;font-size:13px">授权后会自动跳转，在地址栏获取 code 参数</p>';
+    }
+    
+    // code 输入（模拟模式使用任意code；真实模式使用跳转后获取的code）
+    html += '<div class="fg"><label class="fl">授权码 (code)</label><input class="fi" id="wc" placeholder="输入微信返回的授权 code..." value="test123"></div>'
+      + '<button class="btn bp" onclick="authWechat()">🔑 开始采集</button><div id="wr" style="margin-top:16px"></div></div>'
+      + '<div class="card"><div class="ch">已采集用户</div><div id="wu"><div class="em">暂无数据</div></div></div>';
+    
+    el.innerHTML = html;
+  }).catch(function(){
+    el.innerHTML = '<div class="alert ae">加载失败</div>';
+  });
+}
+
+function authWechat() {
+  var c = document.getElementById('wc').value;
+  if (!c) { document.getElementById('wr').innerHTML = '<div class="alert ae">请输入授权 code</div>'; return; }
+  document.getElementById('wr').innerHTML = '<div class="load">授权中...</div>';
+  fetch('/api/wechat/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:c})})
+  .then(function(r){return r.json()}).then(function(d){
+    if (d.code === 200) {
+      var isMock = d.data._mock ? ' (模拟)' : '';
+      document.getElementById('wr').innerHTML = '<div class="alert as">✅ 采集成功！用户: '+d.data.nickname+isMock+'</div>';
+      // 刷新用户列表
+      fetch('/api/search/wechat?q=').then(function(r){return r.json()}).then(function(d2){
+        var users = d2.data || [];
+        var el = document.getElementById('wu');
+        if (!users.length) { el.innerHTML = '<div class="em">暂无数据</div>'; return; }
+        var h = '<table><tr><th>昵称</th><th>地区</th><th>性别</th><th>时间</th></tr>';
+        for (var i = 0; i < users.length; i++) {
+          var u = users[i];
+          h += '<tr><td>'+(u.nickname||'-')+'</td><td>'+(u.region||'-')+'</td><td>'+(u.gender===1?'男':u.gender===2?'女':'未知')+'</td>'
+            + '<td>'+(u.collected_at?new Date(u.collected_at).toLocaleString():'-')+'</td></tr>';
+        }
+        el.innerHTML = h + '</table>';
+      }).catch(function(){});
+    } else {
+      document.getElementById('wr').innerHTML = '<div class="alert ae">❌ '+d.message+'</div>';
+    }
+  }).catch(function(){document.getElementById('wr').innerHTML='<div class="alert ae">请求失败</div>'});
+}
+
+// ====== Sources ======
+function renderSources(el) {
+  el.innerHTML = '<h2>📰 新闻源管理</h2>'
+    + '<button class="btn bp" onclick="showAddSource()">+ 添加新闻源</button>'
+    + '<button class="btn bg" onclick="addDefaultSources()" style="margin-left:8px">📡 一键添加默认新闻源</button>'
+    + '<div style="margin-top:16px" id="sl"></div>';
+  loadSources();
+}
+
+function loadSources() {
+  var el = document.getElementById('sl');
+  if (!el) return;
+  fetch('/api/source/').then(function(r){return r.json()}).then(function(d){
+    var srcs = d.data || [];
+    if (!srcs.length) { el.innerHTML = '<div class="em">暂无新闻源</div>'; return; }
+    var h = '<table><tr><th>名称</th><th>地址</th><th>类型</th><th>频率</th><th>状态</th><th>操作</th></tr>';
+    for (var i = 0; i < srcs.length; i++) {
+      var s = srcs[i];
+      var tc = s.type==='RSS'?'ta':'ti';
+      var sc = s.status==='启用'?'ta':(s.status==='失效'?'td':'ti');
+      h += '<tr><td>'+s.name+'</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+s.url+'">'+s.url+'</td>'
+        + '<td><span class="tag '+tc+'">'+s.type+'</span></td><td>'+s.interval+'分钟</td>'
+        + '<td><span class="tag '+sc+'">'+s.status+'</span></td>'
+        + '<td><button class="btn bp" style="padding:4px 10px;font-size:12px" onclick="editSource('+s.id+')">编辑</button> '
+        + '<button class="btn" style="padding:4px 10px;font-size:12px;color:#ef4444;border-color:#ef4444" onclick="deleteSource('+s.id+')">删除</button></td></tr>';
+    }
+    el.innerHTML = h + '</table>';
+  }).catch(function(){el.innerHTML='<div class="alert ae">加载失败</div>'});
+}
+
+function showAddSource() {
+  om('添加新闻源',
+    '<div class="fg"><label class="fl">名称</label><input class="fi" id="sn" placeholder="如：新浪新闻"></div>'
+    +'<div class="fg"><label class="fl">URL</label><input class="fi" id="su" placeholder="https://..."></div>'
+    +'<div class="fr"><div class="fg"><label class="fl">类型</label><select class="fi" id="st"><option value="WEB">WEB</option><option value="RSS">RSS</option><option value="API">API</option></select></div>'
+    +'<div class="fg"><label class="fl">频率(分钟)</label><input class="fi" id="si" type="number" value="30"></div></div>'
+    +'<button class="btn bp" onclick="addSource()">确认添加</button>');
+}
+
+function addSource() {
+  var n=document.getElementById('sn').value,u=document.getElementById('su').value,t=document.getElementById('st').value,i=parseInt(document.getElementById('si').value)||30;
+  if(!n||!u){alert('请填写名称和URL');return}
+  fetch('/api/source/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,url:u,type:t,interval:i})})
+  .then(function(r){return r.json()}).then(function(d){if(d.code===200){cm();loadSources()}else alert(d.message)})
+  .catch(function(){alert('添加失败')});
+}
+
+function editSource(id) {
+  fetch('/api/source/'+id).then(function(r){return r.json()}).then(function(d){
+    var s=d.data;
+    om('编辑新闻源',
+      '<div class="fg"><label class="fl">名称</label><input class="fi" id="sne" value="'+s.name+'"></div>'
+      +'<div class="fg"><label class="fl">URL</label><input class="fi" id="sue" value="'+s.url+'"></div>'
+      +'<div class="fr"><div class="fg"><label class="fl">类型</label><select class="fi" id="ste"><option value="WEB"'+(s.type==='WEB'?' selected':'')+'>WEB</option><option value="RSS"'+(s.type==='RSS'?' selected':'')+'>RSS</option><option value="API"'+(s.type==='API'?' selected':'')+'>API</option></select></div>'
+      +'<div class="fg"><label class="fl">频率</label><input class="fi" id="sie" type="number" value="'+s.interval+'"></div></div>'
+      +'<div class="fg"><label class="fl">状态</label><select class="fi" id="sse"><option value="启用"'+(s.status==='启用'?' selected':'')+'>启用</option><option value="停用"'+(s.status==='停用'?' selected':'')+'>停用</option></select></div>'
+      +'<button class="btn bp" onclick="updateSource('+id+')">保存</button>');
+  }).catch(function(){alert('加载失败')});
+}
+
+function updateSource(id) {
+  var n=document.getElementById('sne').value,u=document.getElementById('sue').value,t=document.getElementById('ste').value,i=parseInt(document.getElementById('sie').value)||30,s=document.getElementById('sse').value;
+  fetch('/api/source/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,url:u,type:t,interval:i,status:s})})
+  .then(function(r){return r.json()}).then(function(d){if(d.code===200){cm();loadSources()}else alert(d.message)})
+  .catch(function(){alert('更新失败')});
+}
+
+function deleteSource(id) {
+  if(!confirm('确定删除？'))return;
+  fetch('/api/source/'+id,{method:'DELETE'}).then(function(){loadSources()}).catch(function(){});
+}
+
+function addDefaultSources() {
+  fetch('/api/source/defaults',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    if(d.code===200){alert('✅ '+d.message);loadSources()}else alert('❌ '+d.message);
+  }).catch(function(){alert('请求失败')});
+}
+
+// ====== Collect ======
+function renderCollect(el) {
+  el.innerHTML = '<h2>⚡ 手动采集</h2>'
+    + '<button class="btn bp" onclick="collectAll()" style="margin-bottom:16px">▶ 采集所有启用的新闻源</button>'
+    + '<div class="card"><div class="ch">选择单个新闻源采集</div><div id="sca"></div></div><div id="cr"></div>';
+  fetch('/api/source/').then(function(r){return r.json()}).then(function(d){
+    var srcs = (d.data||[]).filter(function(s){return s.status==='启用'});
+    var area = document.getElementById('sca');
+    if (!srcs.length) { area.innerHTML = '<div class="em">没有启用的新闻源</div>'; return; }
+    var h = '<table><tr><th>新闻源</th><th>类型</th><th>操作</th></tr>';
+    for (var i = 0; i < srcs.length; i++) {
+      h += '<tr><td>'+srcs[i].name+'</td><td>'+srcs[i].type+'</td>'
+        + '<td><button class="btn bp" style="padding:4px 10px;font-size:12px" onclick="collectOne('+srcs[i].id+',\''+srcs[i].name+'\')">采集</button></td></tr>';
+    }
+    area.innerHTML = h + '</table>';
+  }).catch(function(){});
+}
+
+function collectOne(id, nm) {
+  var el = document.getElementById('cr');
+  el.innerHTML = '<div class="load">采集中...</div>';
+  fetch('/api/collect/run/'+id,{method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    el.innerHTML = d.code===200 ? '<div class="alert as">✅ ['+nm+'] 采集完成，新增 '+d.data.collected+' 篇</div>' : '<div class="alert ae">❌ ['+nm+'] 失败: '+d.message+'</div>';
+  }).catch(function(){el.innerHTML='<div class="alert ae">请求失败</div>'});
+}
+
+function collectAll() {
+  var el = document.getElementById('cr');
+  el.innerHTML = '<div class="load">批量采集中...</div>';
+  fetch('/api/collect/run/all',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    el.innerHTML = d.code===200 ? '<div class="alert as">✅ 批量采集完成: 成功 '+d.data.success+'/'+d.data.total+'</div>' : '<div class="alert ae">'+d.message+'</div>';
+  }).catch(function(){el.innerHTML='<div class="alert ae">请求失败</div>'});
+}
+
+// ====== Search ======
+function renderSearch(el) {
+  el.innerHTML = '<h2>🔍 信息检索</h2>'
+    + '<div class="sbox"><input class="fi" id="sk" placeholder="输入关键词搜索新闻..." onkeydown="if(event.keyCode===13)doSearch()">'
+    + '<button class="btn bp" onclick="doSearch()">🔍 搜索</button></div><div id="sr"></div>';
+}
+
+function doSearch() {
+  var kw = document.getElementById('sk').value;
+  var el = document.getElementById('sr');
+  if (!kw) { el.innerHTML = '<div class="em">请输入关键词</div>'; return; }
+  el.innerHTML = '<div class="load">搜索中...</div>';
+  fetch('/api/search/news?q='+encodeURIComponent(kw)).then(function(r){return r.json()}).then(function(d){
+    var items = d.data.items || d.data || [];
+    if (!items.length) { el.innerHTML = '<div class="em">未找到相关内容</div>'; return; }
+    var h = '<div style="margin-bottom:8px;font-size:13px;color:#64748b">共 '+(d.data.total||items.length)+' 条结果</div>'
+      + '<table><tr><th>标题</th><th>来源</th><th>时间</th><th>操作</th></tr>';
+    for (var i = 0; i < items.length; i++) {
+      var a = items[i];
+      h += '<tr><td>'+a.title+'</td><td>'+(a.source||'-')+'</td>'
+        + '<td>'+(a.publish_time?new Date(a.publish_time).toLocaleDateString():'-')+'</td>'
+        + '<td>'+(a.url?'<a href="'+a.url+'" target="_blank" class="btn bp" style="padding:4px 10px;font-size:12px">查看原文</a>':'-')+'</td></tr>';
+    }
+    el.innerHTML = h + '</table>';
+  }).catch(function(){el.innerHTML='<div class="alert ae">搜索失败</div>'});
+}
+
+// ====== Export ======
+function renderExport(el) {
+  el.innerHTML = '<h2>📥 数据导出</h2>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;max-width:500px;margin-bottom:24px">'
+    + '<a class="sc" href="/api/export/news/json" target="_blank" style="cursor:pointer;text-decoration:none;display:block">'
+    + '<div class="sn">📋</div><div class="sl2">导出 JSON</div></a>'
+    + '<a class="sc" href="/api/export/news/csv" target="_blank" style="cursor:pointer;text-decoration:none;display:block">'
+    + '<div class="sn">📄</div><div class="sl2">导出 CSV</div></a></div>'
+    + '<div class="card"><div class="ch">说明</div>'
+    + '<ul style="padding-left:20px;font-size:14px;color:#64748b;line-height:2"><li>JSON 格式：完整字段，适合程序化处理</li>'
+    + '<li>CSV 格式：可用 Excel 打开</li><li>导出上限：每次最多 1000 条</li></ul></div>';
+}
+
+// ====== Utilities ======
+function fetchAndRender(el, promises, renderFn) {
+  Promise.all(promises).then(renderFn).catch(function(err){
+    var target = el || document.getElementById('content');
+    if (target) target.innerHTML = '<div class="alert ae">加载数据失败</div>';
+  });
+}
+
+function om(title, body) {
+  document.getElementById('mtt').textContent = title;
+  document.getElementById('mdb').innerHTML = body;
+  document.getElementById('mo').style.display = 'flex';
+}
+
+function cm() {
+  document.getElementById('mo').style.display = 'none';
+}
+
+// ====== Start ======
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+<!-- 登录/注册弹窗 -->
+<div class="mo" id="loginMo" style="display:none">
+  <div class="mb" style="max-width:400px">
+    <div class="mh"><span class="mt" id="loginTitle">登录</span><button class="mc" onclick="cm2()">✕</button></div>
+    <div class="md">
+      <div id="loginForm">
+        <div class="fg"><label class="fl">邮箱</label><input class="fi" id="loginEmail" placeholder="your@qq.com"></div>
+        <div class="fg"><label class="fl">密码</label><input class="fi" id="loginPass" type="password" placeholder="至少6位"></div>
+        <div id="nickField" class="fg" style="display:none"><label class="fl">昵称</label><input class="fi" id="loginNick" placeholder="你的昵称"></div>
+        <div id="loginMsg" style="margin-bottom:12px;font-size:13px"></div>
+        <button class="btn bp" style="width:100%;justify-content:center;margin-bottom:8px" onclick="doLogin()">登录</button>
+        <button class="btn" style="width:100%;justify-content:center;font-size:13px;margin-bottom:8px" onclick="toggleAuthMode()">没有账号？去注册</button>
+        <div style="border-top:1px solid #e2e8f0;padding-top:12px;margin-top:8px;text-align:center">
+          <button class="btn" style="width:100%;justify-content:center;background:#07c160;color:#fff;border-color:#07c160" onclick="wechatLogin()">📱 微信登录（模拟）</button>
+          <div style="font-size:11px;color:#999;margin-top:6px">配置微信开放平台后，可使用微信扫码登录</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var isLogin = true;
+
+function showLogin() {
+  isLogin = true;
+  document.getElementById('loginTitle').textContent = '登录';
+  document.getElementById('nickField').style.display = 'none';
+  document.getElementById('loginMsg').textContent = '';
+  document.getElementById('loginForm').querySelector('button:last-child').textContent = '没有账号？去注册';
+  document.getElementById('loginMo').style.display = 'flex';
+}
+
+function toggleAuthMode() {
+  isLogin = !isLogin;
+  document.getElementById('loginTitle').textContent = isLogin ? '登录' : '注册';
+  document.getElementById('nickField').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('loginMsg').textContent = '';
+  document.getElementById('loginForm').querySelector('button:last-child').textContent = isLogin ? '没有账号？去注册' : '已有账号？去登录';
+  document.getElementById('loginForm').querySelector('button:first-child').textContent = isLogin ? '登录' : '注册';
+}
+
+function wechatLogin() {
+  fetch('/api/auth/wechat/oauth_url').then(function(r){return r.json()}).then(function(d){
+    var data = d.data;
+    if (data.is_configured) {
+      window.open(data.oauth_url, '_blank');
+    } else {
+      // 模拟模式：自动绑定一个模拟微信账号
+      fetch('/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:'wechat@mock.com', password:'wechat123'})})
+      .then(function(r){return r.json()}).then(function(d){
+        if (d.code === 200) { cm2(); checkLogin(); }
+      }).catch(function(){});
+    }
+  }).catch(function(){});
+}
+
+function cm2() {
+  document.getElementById('loginMo').style.display = 'none';
+}
+
+function doLogin() {
+  var email = document.getElementById('loginEmail').value;
+  var password = document.getElementById('loginPass').value;
+  var nickname = document.getElementById('loginNick').value;
+  var msgEl = document.getElementById('loginMsg');
+  
+  if (!email || !password) { msgEl.innerHTML = '<div class="alert ae" style="padding:8px;font-size:13px">邮箱和密码不能为空</div>'; return; }
+  
+  var url = isLogin ? '/api/auth/login' : '/api/auth/register';
+  var body = {email: email, password: password};
+  if (!isLogin && nickname) body.nickname = nickname;
+  
+  fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+  .then(function(r){return r.json()}).then(function(d){
+    if (d.code === 200) {
+      cm2();
+      checkLogin();
+    } else {
+      msgEl.innerHTML = '<div class="alert ae" style="padding:8px;font-size:13px">' + d.message + '</div>';
+    }
+  }).catch(function(){
+    msgEl.innerHTML = '<div class="alert ae" style="padding:8px;font-size:13px">网络错误</div>';
+  });
+}
+
+function checkLogin() {
+  fetch('/api/auth/me').then(function(r){return r.json()}).then(function(d){
+    if (d.code === 200) {
+      document.getElementById('loginBtn').style.display = 'none';
+      document.getElementById('userInfo').style.display = 'flex';
+      var wxBadge = d.data.wechat_openid ? ' <span style="font-size:11px;color:#22c55e">✓微信</span>' : '';
+      document.getElementById('userNick').innerHTML = '👤 ' + d.data.nickname + wxBadge;
+    } else {
+      document.getElementById('loginBtn').style.display = 'block';
+      document.getElementById('userInfo').style.display = 'none';
+    }
+  }).catch(function(){
+    document.getElementById('loginBtn').style.display = 'block';
+  });
+}
+
+function showWechatBind() {
+  fetch('/api/auth/wechat/oauth_url').then(function(r){return r.json()}).then(function(d){
+    var data = d.data;
+    if (data.is_configured) {
+      window.open(data.oauth_url, '_blank');
+    } else {
+      alert('未配置微信开放平台\n\n请编辑 .env 文件填入：\nWECHAT_APP_ID=你的AppID\nWECHAT_APP_SECRET=你的AppSecret\n\n然后在微信开放平台设置回调地址为：\nhttp://localhost:5050');
+    }
+  }).catch(function(){
+    alert('获取配置信息失败');
+  });
+}
+
+function logout() {
+  fetch('/api/auth/logout', {method:'POST'}).then(function(){checkLogin()});
+}
+
+// Check login state on page load
+setTimeout(checkLogin, 500);
+</script>
+</html>
