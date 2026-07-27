@@ -57,7 +57,7 @@ class DataUpdater:
         hour_min = now.strftime("%H:%M")
         title = f"{prefix} - {timestamp} ({hour_min})"
         
-        app = create_app()
+        app = getattr(self, 'context_app', None) or create_app()
         with app.app_context():
             # 使用全站RSS源作为文章来源
             sources = NewsSource.query.filter_by(source_type='RSS').all()

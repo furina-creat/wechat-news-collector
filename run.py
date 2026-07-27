@@ -26,8 +26,10 @@ with app.app_context():
             print(f"📦 种子源: {len(sources)} 个")
         
         if NewsArticle.query.count() == 0:
+            import flask
             from app.services.data_updater import DataUpdater
             updater = DataUpdater()
+            updater.context_app = flask.current_app._get_current_object()
             added = updater.generate_batch(10)
             print(f"📦 种子文章: {added} 篇")
     except Exception as e:
