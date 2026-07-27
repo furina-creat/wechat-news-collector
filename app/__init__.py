@@ -97,26 +97,26 @@ def create_app(config_class='app.config.Config'):
         from app.models import NewsSource, NewsArticle
         from datetime import datetime
         try:
-            # 添加种子源（检查每个源的URL是否已存在，避免重复）
-                all_sources = [
-                    ("36氪","https://36kr.com/feed"),("澎湃新闻","https://www.thepaper.cn/rss/"),
-                    ("知乎日报","https://www.zhihu.com/rss/daily"),("新浪新闻","https://rss.sina.com.cn/sina_all.xml"),
-                    ("虎嗅","https://www.huxiu.com/rss/1.xml"),("果壳网","https://www.guokr.com/rss/"),
-                    ("新浪财经","https://rss.sina.com.cn/finance/finance.xml"),
-                    ("新浪科技","https://rss.sina.com.cn/tech/tech.xml"),
-                    ("新浪教育","https://rss.sina.com.cn/edu/edu.xml"),
-                    ("腾讯科技","https://rss.news.qq.com/news/tech/"),
-                    ("网易科技","https://rss.sina.com.cn/tech/tech.xml"),
-                    ("考研帮","https://api.example.com/kaoyan"),("中公教育","https://api.example.com/offcn"),
-                    ("新东方考研","https://api.example.com/xdf"),("华图教育","https://api.example.com/ht"),
-                    ("牛客网","https://api.example.com/nowcoder"),("拉勾网","https://api.example.com/lagou"),
-                    ("智联招聘","https://api.example.com/zhaopin"),("国企招聘网","https://api.example.com/guoqi"),
-                    ("新浪体育","https://rss.sina.com.cn/sports/sports.xml"),
-                    ("36氪快讯","https://36kr.com/newsflashes"),
-                ]
-                for n,u in all_sources:
-                    if not NewsSource.query.filter_by(url=u).first():
-                        db.session.add(NewsSource(name=n,url=u,source_type='RSS',crawl_interval=60,category='综合'))
+        # 添加种子源（检查每个源的URL是否已存在，避免重复）
+            all_sources = [
+                ("36氪","https://36kr.com/feed"),("澎湃新闻","https://www.thepaper.cn/rss/"),
+                ("知乎日报","https://www.zhihu.com/rss/daily"),("新浪新闻","https://rss.sina.com.cn/sina_all.xml"),
+                ("虎嗅","https://www.huxiu.com/rss/1.xml"),("果壳网","https://www.guokr.com/rss/"),
+                ("新浪财经","https://rss.sina.com.cn/finance/finance.xml"),
+                ("新浪科技","https://rss.sina.com.cn/tech/tech.xml"),
+                ("新浪教育","https://rss.sina.com.cn/edu/edu.xml"),
+                ("腾讯科技","https://rss.news.qq.com/news/tech/"),
+                ("网易科技","https://rss.sina.com.cn/tech/tech.xml"),
+                ("考研帮","https://api.example.com/kaoyan"),("中公教育","https://api.example.com/offcn"),
+                ("新东方考研","https://api.example.com/xdf"),("华图教育","https://api.example.com/ht"),
+                ("牛客网","https://api.example.com/nowcoder"),("拉勾网","https://api.example.com/lagou"),
+                ("智联招聘","https://api.example.com/zhaopin"),("国企招聘网","https://api.example.com/guoqi"),
+                ("新浪体育","https://rss.sina.com.cn/sports/sports.xml"),
+                ("36氪快讯","https://36kr.com/newsflashes"),
+            ]
+            for n,u in all_sources:
+                if not NewsSource.query.filter_by(url=u).first():
+                    db.session.add(NewsSource(name=n,url=u,source_type='RSS',crawl_interval=60,category='综合'))
                 db.session.commit()
             if NewsArticle.query.count() == 0:
                 now=datetime.now()

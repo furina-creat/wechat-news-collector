@@ -93,6 +93,68 @@ table tr:nth-child(3){animation-delay:0.1s}
 .loading-spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#1a73e8;border-radius:50%;animation:spin 0.8s linear infinite;margin:20px auto}
 .loading-spinner + .load-text{text-align:center;color:#64748b;font-size:13px;margin-top:8px}
 </style>
+<script>
+// 登录功能（独立脚本，确保始终可用）
+var isLogin = true;
+function showLogin() {
+  var m = document.getElementById('loginMo');
+  if(!m)return;
+  isLogin=true;
+  document.getElementById('loginTitle').textContent='登录';
+  document.getElementById('nickField').style.display='none';
+  document.getElementById('loginMsg').textContent='';
+  m.style.display='flex';
+}
+function toggleAuthMode(){
+  isLogin=!isLogin;
+  document.getElementById('loginTitle').textContent=isLogin?'登录':'注册';
+  document.getElementById('nickField').style.display=isLogin?'none':'block';
+  document.getElementById('loginMsg').textContent='';
+}
+function cm2(){document.getElementById('loginMo').style.display='none'}
+function doLogin(){
+  var e=document.getElementById('loginEmail').value;
+  var p=document.getElementById('loginPass').value;
+  var n=document.getElementById('loginNick').value;
+  var msg=document.getElementById('loginMsg');
+  if(!e||!p){msg.innerHTML='<div class="alert ae" style="padding:8px;font-size:13px">邮箱密码不能为空</div>';return}
+  var url=isLogin?'/api/auth/login':'/api/auth/register';
+  var body={email:e,password:p};
+  if(!isLogin&&n)body.nickname=n;
+  fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+  .then(function(r){return r.json()}).then(function(d){
+    if(d.code===200){cm2();checkLogin()}
+    else msg.innerHTML='<div class="alert ae" style="padding:8px;font-size:13px">'+d.message+'</div>';
+  }).catch(function(){msg.innerHTML='<div class="alert ae" style="padding:8px;font-size:13px">网络错误</div>'});
+}
+function checkLogin(){
+  fetch('/api/auth/me').then(function(r){return r.json()}).then(function(d){
+    if(d.code===200){
+      document.getElementById('loginBtn').style.display='none';
+      document.getElementById('userInfo').style.display='flex';
+      document.getElementById('userNick').innerHTML='👤 '+d.data.nickname;
+    }else{
+      document.getElementById('loginBtn').style.display='block';
+      document.getElementById('userInfo').style.display='none';
+    }
+  }).catch(function(){
+    document.getElementById('loginBtn').style.display='block';
+  });
+}
+function logout(){
+  fetch('/api/auth/logout',{method:'POST'}).then(function(){checkLogin()});
+}
+function wechatLogin(){
+  fetch('/api/auth/wechat/oauth_url').then(function(r){return r.json()}).then(function(d){
+    if(d.data.is_configured)window.open(d.data.oauth_url,'_blank');
+    else{
+      fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'wechat@mock.com',password:'wechat123'})})
+      .then(function(r){return r.json()}).then(function(d){if(d.code===200){cm2();checkLogin()}}).catch(function(){});
+    }
+  }).catch(function(){});
+}
+setTimeout(checkLogin,500);
+</script>
 </head>
 <body>
 <div class="app">
@@ -631,6 +693,5 @@ function logout() {
 }
 
 // Check login state on page load
-setTimeout(checkLogin, 500);
 </script>
 </html>
