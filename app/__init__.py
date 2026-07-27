@@ -92,4 +92,33 @@ def create_app(config_class='app.config.Config'):
         response.headers['Expires'] = '0'
         return response
 
+    # 种子数据（首次运行自动创建）
+    with app.app_context():
+        from app.models import NewsSource, NewsArticle
+        from datetime import datetime
+        try:
+            if NewsSource.query.count() == 0:
+                for n,u in [("36氪","https://36kr.com/feed"),("澎湃新闻","https://www.thepaper.cn/rss/")]:
+                    db.session.add(NewsSource(name=n,url=u,source_type='RSS',crawl_interval=60,category='综合'))
+                db.session.commit()
+            if NewsArticle.query.count() == 0:
+                now=datetime.now()
+                for i,(t,c,cat) in enumerate([
+                    ("考研国家线公布","2026年考研国家线公布经济涨","考公考研"),
+                    ("行测备考攻略","行测四大模块备考方法详解","考公考研"),
+                    ("考研英语阅读策略","阅读占考研英语40%三大策略","考公考研"),
+                    ("考研数学复习规划","高数线代概率三轮复习法","考公考研"),
+                    ("政治时政热点","关注重要政策与热点话题","考公考研"),
+                    ("国考报名时间","2026年国考10月启动","考公考研"),
+                    ("秋招时间线与策略","校招各阶段准备重点","应届求职"),
+                    ("大厂面试经验","BAT面试全流程经验分享","应届求职"),
+                    ("简历优化指南","HR视角简历撰写要点","应届求职"),
+                    ("薪资谈判技巧","应届生薪资谈判方法","应届求职"),
+                    ("A股收跌","上证跌1.2%半导体领跌","股票市场"),
+                    ("央行货币政策","央行披露最新货币政策","股票市场"),
+                ]):
+                    db.session.add(NewsArticle(title=t,content=c,category=cat,source_site='澎湃新闻',collected_at=now))
+                db.session.commit()
+        except: pass
+
     return app
