@@ -113,6 +113,10 @@ def create_app(config_class='app.config.Config'):
                 ("智联招聘","https://api.example.com/zhaopin"),("国企招聘网","https://api.example.com/guoqi"),
                 ("新浪体育","https://rss.sina.com.cn/sports/sports.xml"),
                 ("36氪快讯","https://36kr.com/newsflashes"),
+                    ("网易新闻","https://c.m.163.com/api/subscribe/feed/"),
+                    ("新浪教育","https://rss.sina.com.cn/edu/edu.xml"),
+                    ("新华网","https://www.xinhuanet.com/rss/edu.xml"),
+                    ("人民教育","https://edu.people.com.cn/rss/edu.xml"),
             ]
             for n,u in all_sources:
                 if not NewsSource.query.filter_by(url=u).first():
