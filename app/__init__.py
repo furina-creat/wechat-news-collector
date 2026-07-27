@@ -173,7 +173,7 @@ def create_app(config_class='app.config.Config'):
                     count_s += 1
             db.session.commit()
             
-            if NewsArticle.query.count() < 10:
+            if NewsArticle.query.count() < 50:
                 now = datetime.now()
                 seeds = [
                     ("考研国家线公布","2026年考研国家线公布，经济学涨6分，工学持平。法学、管理学等热门专业分数线稳中有升。考生可根据自身情况选择调剂院校，重点关注B区院校。","考公考研"),
