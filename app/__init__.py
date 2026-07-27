@@ -106,6 +106,13 @@ def create_app(config_class='app.config.Config'):
                     ("新浪科技","https://rss.sina.com.cn/tech/tech.xml"),
                     ("新浪教育","https://rss.sina.com.cn/edu/edu.xml"),
                     ("腾讯科技","https://rss.news.qq.com/news/tech/"),
+                    ("网易科技","https://rss.sina.com.cn/tech/tech.xml"),
+                    ("考研帮","https://api.example.com/kaoyan"),("中公教育","https://api.example.com/offcn"),
+                    ("新东方考研","https://api.example.com/xdf"),("华图教育","https://api.example.com/ht"),
+                    ("牛客网","https://api.example.com/nowcoder"),("拉勾网","https://api.example.com/lagou"),
+                    ("智联招聘","https://api.example.com/zhaopin"),("国企招聘网","https://api.example.com/guoqi"),
+                    ("新浪体育","https://rss.sina.com.cn/sports/sports.xml"),
+                    ("36氪快讯","https://36kr.com/newsflashes"),
                 ]
                 for n,u in all_sources:
                     if not NewsSource.query.filter_by(url=u).first():
