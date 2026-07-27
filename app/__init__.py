@@ -171,6 +171,7 @@ def create_app(config_class='app.config.Config'):
                 if not NewsSource.query.filter_by(url=u).first():
                     db.session.add(NewsSource(name=n,url=u,source_type='RSS',crawl_interval=60,category='综合'))
                     count_s += 1
+            db.session.commit()
             
             if NewsArticle.query.count() < 10:
                 now = datetime.now()
