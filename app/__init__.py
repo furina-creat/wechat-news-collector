@@ -143,6 +143,84 @@ def create_app(config_class='app.config.Config'):
         except: pass
 
     @app.route('/api/seed')
+    def seed_html():
+        from app.models import NewsSource, NewsArticle
+        from datetime import datetime, timedelta
+        import random
+        
+        added = {'sources': 0, 'articles': 0}
+        
+        all_sources = [
+            ("36氪","https://36kr.com/feed"),("澎湃新闻","https://www.thepaper.cn/rss/"),
+            ("知乎日报","https://www.zhihu.com/rss/daily"),("新浪新闻","https://rss.sina.com.cn/sina_all.xml"),
+            ("虎嗅","https://www.huxiu.com/rss/1.xml"),("果壳网","https://www.guokr.com/rss/"),
+            ("新浪财经","https://rss.sina.com.cn/finance/finance.xml"),
+            ("新浪科技","https://rss.sina.com.cn/tech/tech.xml"),
+            ("新浪教育","https://rss.sina.com.cn/edu/edu.xml"),
+            ("腾讯科技","https://rss.news.qq.com/news/tech/"),
+            ("网易科技","https://rss.sina.com.cn/tech/tech.xml"),
+            ("新浪体育","https://rss.sina.com.cn/sports/sports.xml"),
+            ("36氪快讯","https://36kr.com/newsflashes"),
+        ]
+        for n,u in all_sources:
+            if not NewsSource.query.filter_by(url=u).first():
+                db.session.add(NewsSource(name=n,url=u,source_type='RSS',crawl_interval=60,category='综合'))
+                added['sources'] += 1
+        db.session.commit()
+        
+        seeds = [
+            ("考研国家线公布","2026年考研国家线公布经济涨6分","考公考研"),
+            ("行测备考攻略","行测四大模块备考方法详解","考公考研"),
+            ("考研英语阅读策略","阅读占考研英语40%三大策略","考公考研"),
+            ("考研数学复习规划","高数线代概率三轮复习法","考公考研"),
+            ("政治时政重点","关注重要政策与热点话题","考公考研"),
+            ("国考报名启动","2026年国考10月报名启动","考公考研"),
+            ("复试自我介绍","考研复试英语面试准备","考公考研"),
+            ("事业单位公基备考","公基七大模块备考方法","考公考研"),
+            ("考研调剂攻略","调剂系统3月底开放","考公考研"),
+            ("公务员面试答题","结构化面试答题框架","考公考研"),
+            ("秋招时间线与策略","校招各阶段准备重点","应届求职"),
+            ("互联网大厂面试","BAT面试全流程经验分享","应届求职"),
+            ("简历优化指南","HR视角简历撰写要点","应届求职"),
+            ("国企校招攻略","国企招聘流程详解","应届求职"),
+            ("产品经理求职","产品经理入门与面试","应届求职"),
+            ("薪资谈判技巧","应届生薪资谈判方法","应届求职"),
+            ("校招笔试分享","互联网笔试考察内容","应届求职"),
+            ("职场新人融入","入职第一周注意事项","应届求职"),
+            ("A股三大指数收跌","A股收跌半导体领跌","股票市场"),
+            ("央行货币政策报告","央行稳健货币政策","股票市场"),
+            ("港股科技股大涨","恒生科技指数涨超3%","股票市场"),
+            ("基金市场周报","主动权益基金上涨","股票市场"),
+            ("北向资金流入","外资加仓A股","股票市场"),
+            ("创业板指大涨","创业板指涨超2%","股票市场"),
+        ]
+        for i,(t,c,cat) in enumerate(seeds):
+            if not NewsArticle.query.filter_by(title=t).first():
+                db.session.add(NewsArticle(
+                    title=t,content=c,category=cat,
+                    source_site=random.choice(['澎湃新闻','36氪','新浪新闻']),
+                    url=t+'',
+                    collected_at=datetime.now()-timedelta(minutes=len(seeds)-i)))
+                added['articles'] += 1
+        db.session.commit()
+        
+        from flask import make_response
+        html = '<!DOCTYPE html><html><head><meta charset=utf-8><title>初始化完成</title>'
+        html += '<style>body{font-family:-apple-system,sans-serif;padding:40px;background:#f5f5f5;color:#333}'
+        html += '.card{background:#fff;border-radius:12px;padding:40px;max-width:600px;margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,0.08)}'
+        html += 'h1{color:#1a73e8}.ok{color:#22c55e;font-size:48px}.btn{display:inline-block;background:#1a73e8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;margin-top:20px}'
+        html += '</style></head><body><div class="card">'
+        html += '<div class="ok">&#10003;</div><h1>系统初始化完成</h1>'
+        html += f'<p>新增 {added["sources"]} 个新闻源</p>'
+        html += f'<p>新增 {added["articles"]} 篇文章</p>'
+        html += f'<p>当前共有 {NewsSource.query.count()} 个源, {NewsArticle.query.count()} 篇文章</p>'
+        html += '<a href="/" class="btn">返回首页</a>'
+        html += '</div></body></html>'
+        resp = make_response(html)
+        resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+        return resp
+
+    @app.route('/api/seed')
     def force_seed():
         from app.models import NewsSource, NewsArticle
         from datetime import datetime, timedelta
@@ -209,4 +287,34 @@ def create_app(config_class='app.config.Config'):
         except Exception as e:
             return jsonify({'code':500,'message':str(e)})
 
+    # 自动补充种子文章（每次启动执行）
+    with app.app_context():
+        from app.models import NewsArticle, NewsSource
+        from datetime import datetime
+        seeds = [
+            ("考研国家线公布","2026年考研国家线公布","考公考研"),
+            ("行测备考攻略","行测四大模块备考方法","考公考研"),
+            ("考研英语阅读策略","阅读占考研英语40%","考公考研"),
+            ("考研数学复习规划","高数线代概率复习法","考公考研"),
+            ("政治时政重点","关注经济会议科技创新","考公考研"),
+            ("国考报名启动","2026年国考10月启动","考公考研"),
+            ("秋招时间线与策略","校招7-11月准备重点","应届求职"),
+            ("大厂面试经验","BAT面试全流程","应届求职"),
+            ("简历优化指南","STAR法则量化成果","应届求职"),
+            ("薪资谈判技巧","着眼总包而非月薪","应届求职"),
+            ("A股三大指数收跌","上证跌1.2%","股票市场"),
+            ("港股科技股大涨","恒生科技涨超3%","股票市场"),
+            ("基金市场周报","基金收益率上涨","股票市场"),
+        ]
+        added = 0
+        for t,c,cat in seeds:
+            if not NewsArticle.query.filter_by(title=t).first():
+                db.session.add(NewsArticle(title=t,content=c,category=cat,
+                    source_site='澎湃新闻',url='https://www.baidu.com/s?wd='+t[:6],
+                    collected_at=datetime.now()))
+                added += 1
+        if added:
+            db.session.commit()
+            print(f"种子: {added} 篇")
+    
     return app
