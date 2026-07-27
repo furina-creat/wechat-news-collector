@@ -97,9 +97,19 @@ def create_app(config_class='app.config.Config'):
         from app.models import NewsSource, NewsArticle
         from datetime import datetime
         try:
-            if NewsSource.query.count() == 0:
-                for n,u in [("36氪","https://36kr.com/feed"),("澎湃新闻","https://www.thepaper.cn/rss/")]:
-                    db.session.add(NewsSource(name=n,url=u,source_type='RSS',crawl_interval=60,category='综合'))
+            # 添加种子源（检查每个源的URL是否已存在，避免重复）
+                all_sources = [
+                    ("36氪","https://36kr.com/feed"),("澎湃新闻","https://www.thepaper.cn/rss/"),
+                    ("知乎日报","https://www.zhihu.com/rss/daily"),("新浪新闻","https://rss.sina.com.cn/sina_all.xml"),
+                    ("虎嗅","https://www.huxiu.com/rss/1.xml"),("果壳网","https://www.guokr.com/rss/"),
+                    ("新浪财经","https://rss.sina.com.cn/finance/finance.xml"),
+                    ("新浪科技","https://rss.sina.com.cn/tech/tech.xml"),
+                    ("新浪教育","https://rss.sina.com.cn/edu/edu.xml"),
+                    ("腾讯科技","https://rss.news.qq.com/news/tech/"),
+                ]
+                for n,u in all_sources:
+                    if not NewsSource.query.filter_by(url=u).first():
+                        db.session.add(NewsSource(name=n,url=u,source_type='RSS',crawl_interval=60,category='综合'))
                 db.session.commit()
             if NewsArticle.query.count() == 0:
                 now=datetime.now()
