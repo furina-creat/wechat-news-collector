@@ -50,6 +50,19 @@ def _start_scheduler(app):
         except Exception as e:
             print(f"[{datetime.now()}] ⚠️ 首次采集异常: {e}")
 
+        # 首次采集公众号文章
+        try:
+            from app.models import WeChatMPAccount
+            from app.services.mp_collector import crawl_all_accounts as crawl_wechat_mp
+            if WeChatMPAccount.query.count() == 0:
+                db.session.add(WeChatMPAccount(name='重庆招考', category='考公考研'))
+                db.session.commit()
+                print(f"[{datetime.now()}] 📡 已添加默认公众号「重庆招考」")
+            mp_results = crawl_wechat_mp()
+            print(f"[{datetime.now()}] 📡 公众号采集完成: {len(mp_results)} 个账号")
+        except Exception as e:
+            print(f"[{datetime.now()}] ⚠️ 公众号采集跳过: {e}")
+
 
 threading.Thread(target=_start_scheduler, args=(app,), daemon=True).start()
 

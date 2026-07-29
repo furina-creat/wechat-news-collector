@@ -62,3 +62,17 @@ class WechatUserInfo(db.Model):
     region = db.Column(db.String(100))
     collected_at = db.Column(db.DateTime, default=datetime.now)
     authorized_at = db.Column(db.DateTime)
+
+
+class WeChatMPAccount(db.Model):
+    """关注的公众号账号列表"""
+    __tablename__ = 'wechat_mp_accounts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, comment='公众号名称')
+    wxid = db.Column(db.String(100), default='', comment='微信号(gh_xxx)')
+    category = db.Column(db.String(50), default='综合', comment='归属分类')
+    status = db.Column(db.String(10), default='启用', comment='启用/停用')
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    last_crawl = db.Column(db.DateTime, comment='最近采集时间')
+    crawl_count = db.Column(db.Integer, default=0, comment='累计采集文章数')

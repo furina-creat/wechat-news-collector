@@ -23,6 +23,7 @@ def create_app(config_class='app.config.Config'):
     from app.routes.search import search_bp
     from app.routes.export import export_bp
     from app.routes.wechat_mp import wechat_mp_bp
+    from app.routes.mp_collect import mp_collect_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(wechat_bp, url_prefix='/api/wechat')
@@ -31,6 +32,7 @@ def create_app(config_class='app.config.Config'):
     app.register_blueprint(search_bp, url_prefix='/api/search')
     app.register_blueprint(export_bp, url_prefix='/api/export')
     app.register_blueprint(wechat_mp_bp)
+    app.register_blueprint(mp_collect_bp)
     
     # Home page
     @app.route('/')

@@ -207,6 +207,7 @@ var navItems = [
   {id:'collect',title:'⚡ 手动采集'},
   {id:'search',title:'🔍 信息检索'},
   {id:'export',title:'📥 数据导出'},
+  {id:'mp_collect',title:'📡 公众号文章'},
   {sep:true},
   {id:'kaoyan',title:'📚 考公考研'},
   {id:'job',title:'💼 应届求职'},
@@ -242,6 +243,7 @@ function renderPage(id) {
   else if (id === 'kaoyan') renderCategory(el, '考公考研');
   else if (id === 'job') renderCategory(el, '应届求职');
   else if (id === 'stock') renderCategory(el, '股票市场');
+  else if (id === 'mp_collect') renderMPCollect(el);
 }
 
 // ====== Dashboard ======
@@ -546,6 +548,118 @@ function renderExport(el) {
     + '<div class="card"><div class="ch">说明</div>'
     + '<ul style="padding-left:20px;font-size:14px;color:#64748b;line-height:2"><li>JSON 格式：完整字段，适合程序化处理</li>'
     + '<li>CSV 格式：可用 Excel 打开</li><li>导出上限：每次最多 1000 条</li></ul></div>';
+}
+
+// ====== 公众号文章采集 ======
+function renderMPCollect(el) {
+  el.innerHTML = '<h2>📡 公众号文章采集</h2>'
+    + '<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">'
+    + '<button class="btn bp" onclick="showAddMPAccount()">+ 添加公众号</button>'
+    + '<button class="btn bg" onclick="mpCrawlAll()">🔄 采集全部</button>'
+    + '<button class="btn" onclick="mpRefresh()">🔄 刷新</button></div>'
+    + '<div id="mpStats"></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:16px">'
+    + '<div><div class="card"><div class="ch">已关注公众号</div><div id="mpAccounts"></div></div></div>'
+    + '<div><div class="card"><div class="ch">采集到的文章</div><div id="mpArticles"></div></div></div></div>'
+    + '<div id="mpModal" class="mo" style="display:none"><div class="mb"><div class="mh">'
+    + '<span class="mt" id="mpModalTitle">添加公众号</span>'
+    + '<button class="mc" onclick="cmMP()">x</button></div>'
+    + '<div class="md"><div class="fg"><label class="fl">公众号名称</label>'
+    + '<input class="fi" id="mpName" placeholder="如 重庆招考"></div>'
+    + '<div class="fg"><label class="fl">分类（可选）</label>'
+    + '<select class="fi" id="mpCat"><option value="综合">综合</option>'
+    + '<option value="考公考研">考公考研</option><option value="应届求职">应届求职</option>'
+    + '<option value="股票市场">股票市场</option></select></div>'
+    + '<div class="fg"><label class="fl">微信号（可选）</label>'
+    + '<input class="fi" id="mpWxid" placeholder="gh_xxx（选填）"></div>'
+    + '<button class="btn bp" onclick="mpAddAccount()">确认添加</button>'
+    + '<div id="mpAddMsg" style="margin-top:8px"></div></div></div></div>';
+  mpLoad();
+}
+
+function cmMP(){document.getElementById('mpModal').style.display='none'}
+function showAddMPAccount(){document.getElementById('mpModal').style.display='flex';document.getElementById('mpAddMsg').innerHTML=''}
+
+function mpLoad() {
+  fetch('/api/mp-collect/accounts').then(function(r){return r.json()}).then(function(d){
+    var accounts = d.data || [];
+    var h = '';
+    if(!accounts.length){h='<div class="em">暂无关注的公众号<br>点击上方「添加公众号」开始</div>'}
+    else {
+      h = '<table><tr><th>名称</th><th>状态</th><th>文章</th><th>操作</th></tr>';
+      for(var i=0;i<accounts.length;i++){
+        var a=accounts[i];
+        h += '<tr><td>'+a.name+'</td><td><span class="tag '+(a.status==='启用'?'ta':'ti')+'">'+a.status+'</span></td>'
+          + '<td>'+(a.crawl_count||0)+'</td>'
+          + '<td><button class="btn" style="padding:3px 8px;font-size:12px" onclick="mpCrawl('+a.id+')">采集</button> '
+          + '<button class="btn" style="padding:3px 8px;font-size:12px;color:#ef4444;border-color:#fecaca" onclick="mpDelete('+a.id+',\''+a.name+'\')">删除</button></td></tr>';
+      }
+      h += '</table>';
+    }
+    document.getElementById('mpAccounts').innerHTML = h;
+  }).catch(function(){document.getElementById('mpAccounts').innerHTML='<div class="em">加载失败</div>'});
+
+  fetch('/api/mp-collect/articles').then(function(r){return r.json()}).then(function(d){
+    var items = d.data.items || [];
+    var h = '';
+    if(!items.length){h='<div class="em">暂无文章，先添加公众号并点击「采集」</div>'}
+    else {
+      h = '<table><tr><th>标题</th><th>来源</th><th>分类</th><th>时间</th></tr>';
+      for(var i=0;i<items.length;i++){
+        var a=items[i];
+        var linkHtml = '<a href="/page/'+a.id+'" style="color:#1a73e8;text-decoration:none;font-weight:500">'+a.title+'</a>';
+        h += '<tr><td>'+linkHtml+'<br><span style="font-size:12px;color:#94a3b8">'+(a.content||'').substring(0,50)+'</span></td>'
+          + '<td style="font-size:13px">'+(a.source||'-')+'</td>'
+          + '<td><span class="tag ta">'+(a.category||'综合')+'</span></td>'
+          + '<td style="font-size:13px;color:#94a3b8">'+(a.collected_at?new Date(a.collected_at).toLocaleDateString():'-')+'</td></tr>';
+      }
+      h += '</table>';
+    }
+    document.getElementById('mpArticles').innerHTML = h;
+  }).catch(function(){});
+
+  fetch('/api/mp-collect/stats').then(function(r){return r.json()}).then(function(d){
+    var s=d.data||{};
+    document.getElementById('mpStats').innerHTML='<div class="grid" style="grid-template-columns:1fr 1fr">'
+      + '<div class="sc"><div class="sn">'+s.accounts+'</div><div class="sl2">关注公众号</div></div>'
+      + '<div class="sc"><div class="sn">'+s.articles+'</div><div class="sl2">采集文章数</div></div></div>';
+  }).catch(function(){});
+}
+
+function mpRefresh(){mpLoad();document.getElementById('mpArticles').innerHTML='<div class="load">刷新中...</div>'}
+
+function mpAddAccount(){
+  var name=document.getElementById('mpName').value.trim();
+  var cat=document.getElementById('mpCat').value;
+  var wxid=document.getElementById('mpWxid').value.trim();
+  var msg=document.getElementById('mpAddMsg');
+  if(!name){msg.innerHTML='<div class="alert ae" style="padding:8px">请输入公众号名称</div>';return}
+  fetch('/api/mp-collect/accounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,category:cat,wxid:wxid})})
+  .then(function(r){return r.json()}).then(function(d){
+    if(d.code===200){cmMP();document.getElementById('mpName').value='';mpLoad()}
+    else msg.innerHTML='<div class="alert ae" style="padding:8px">'+d.message+'</div>';
+  }).catch(function(){msg.innerHTML='<div class="alert ae" style="padding:8px">网络错误</div>'});
+}
+
+function mpDelete(id,name){
+  if(!confirm('确定删除「'+name+'」吗？已采集的文章不会删除。'))return;
+  fetch('/api/mp-collect/accounts/'+id,{method:'DELETE'}).then(function(r){return r.json()}).then(function(d){
+    mpLoad();
+  }).catch(function(){});
+}
+
+function mpCrawl(id){
+  document.getElementById('mpArticles').innerHTML='<div class="load">采集中...</div>';
+  fetch('/api/mp-collect/accounts/'+id+'/crawl',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    mpLoad();
+  }).catch(function(){document.getElementById('mpArticles').innerHTML='<div class="alert ae">采集失败</div>'});
+}
+
+function mpCrawlAll(){
+  document.getElementById('mpArticles').innerHTML='<div class="load">批量采集中...</div>';
+  fetch('/api/mp-collect/crawl-all',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    mpLoad();
+  }).catch(function(){document.getElementById('mpArticles').innerHTML='<div class="alert ae">批量采集失败</div>'});
 }
 
 // ====== Utilities ======
