@@ -689,7 +689,20 @@ function renderMPCollect(el) {
     + '<div class="fg"><label class="fl">微信号（可选）</label>'
     + '<input class="fi" id="mpWxid" placeholder="gh_xxx（选填）"></div>'
     + '<button class="btn bp" onclick="mpAddAccount()">确认添加</button>'
-    + '<div id="mpAddMsg" style="margin-top:8px"></div></div></div></div>';
+    + '<div id="mpAddMsg" style="margin-top:8px"></div></div></div></div>'
+    + '<div id="mpModalArticle" class="mo" style="display:none"><div class="mb"><div class="mh">'
+    + '<span class="mt">手动添加文章</span>'
+    + '<button class="mc" onclick="cmMPArt()">x</button></div>'
+    + '<div class="md"><div class="fg"><label class="fl">文章链接 *</label>'
+    + '<input class="fi" id="mpArtUrl" placeholder="https://mp.weixin.qq.com/s/..."></div>'
+    + '<div class="fg"><label class="fl">文章标题 *</label>'
+    + '<input class="fi" id="mpArtTitle" placeholder="输入文章标题"></div>'
+    + '<div class="fg"><label class="fl">公众号名称</label>'
+    + '<input class="fi" id="mpArtAccount" placeholder="如 重庆招考"></div>'
+    + '<div class="fg"><label class="fl">摘要（可选）</label>'
+    + '<textarea class="fi" id="mpArtAbstract" rows="2" style="resize:vertical"></textarea></div>'
+    + '<button class="btn bp" onclick="mpAddArticle()">确认添加</button>'
+    + '<div id="mpArtMsg" style="margin-top:8px"></div></div></div></div>';
   mpLoad();
 }
 
@@ -939,17 +952,5 @@ function logout() {
 
 // Check login state on page load
 </script>
+</body>
 </html>
-    + '<div id="mpModalArticle" class="mo" style="display:none"><div class="mb"><div class="mh">'
-    + '<span class="mt">手动添加文章</span>'
-    + '<button class="mc" onclick="cmMPArt()">x</button></div>'
-    + '<div class="md"><div class="fg"><label class="fl">文章链接 *</label>'
-    + '<input class="fi" id="mpArtUrl" placeholder="https://mp.weixin.qq.com/s/..."></div>'
-    + '<div class="fg"><label class="fl">文章标题 *</label>'
-    + '<input class="fi" id="mpArtTitle" placeholder="输入文章标题"></div>'
-    + '<div class="fg"><label class="fl">公众号名称</label>'
-    + '<input class="fi" id="mpArtAccount" placeholder="如 重庆招考"></div>'
-    + '<div class="fg"><label class="fl">摘要（可选）</label>'
-    + '<textarea class="fi" id="mpArtAbstract" rows="2" style="resize:vertical"></textarea></div>'
-    + '<button class="btn bp" onclick="mpAddArticle()">确认添加</button>'
-    + '<div id="mpArtMsg" style="margin-top:8px"></div></div></div></div>'
