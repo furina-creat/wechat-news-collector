@@ -18,9 +18,41 @@ app = create_app()
 with app.app_context():
     try:
         db.create_all()
+        # 迁移：为新加的列做 ALTER TABLE（兼容已有数据库）
+        _migrate_db()
         print(f"[{datetime.now()}] ✅ 数据库就绪")
     except Exception as e:
         print(f"[{datetime.now()}] ⚠️ 建表异常: {e}")
+
+
+def _migrate_db():
+    """给已有数据库添加缺失的列（不破坏现有数据）。"""
+    from sqlalchemy import inspect, text as sa_text
+    inspector = inspect(db.engine)
+
+    migrates = {
+        "news_sources": [
+            ("last_crawl_at", "DATETIME"),
+            ("last_error", "VARCHAR(300) DEFAULT ''"),
+            ("article_count", "INTEGER DEFAULT 0"),
+        ],
+        "news_articles": [
+            ("is_saved", "BOOLEAN DEFAULT 0"),
+        ],
+    }
+    for table, columns in migrates.items():
+        existing = {c["name"] for c in inspector.get_columns(table)}
+        for col_name, col_type in columns:
+            if col_name not in existing:
+                try:
+                    with db.engine.connect() as conn:
+                        conn.execute(sa_text(
+                            f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
+                        ))
+                        conn.commit()
+                    print(f"  ✅ 迁移: {table}.{col_name}")
+                except Exception as e:
+                    print(f"  ⚠️ 迁移跳过 {table}.{col_name}: {e}")
 
 
 # ---- 后台启动采集调度器 ----
