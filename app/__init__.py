@@ -99,8 +99,8 @@ def create_app(config_class='app.config.Config'):
         response.headers['Expires'] = '0'
         return response
 
-    # 种子数据（首次运行自动创建）
     with app.app_context():
+        _run_migration()
         import os
         os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'instance'), exist_ok=True)
         from app.models import NewsSource, NewsArticle
@@ -296,3 +296,38 @@ def create_app(config_class='app.config.Config'):
             return jsonify({'code':500,'message':str(e)})
 
     return app
+
+
+def _run_migration():
+    """自动给已有数据库表添加缺失的列。"""
+    from sqlalchemy import inspect, text as sa_text
+    try:
+        inspector = inspect(db.engine)
+        migrates = {
+            "news_sources": [
+                ("last_crawl_at", "DATETIME"),
+                ("last_error", "VARCHAR(300) DEFAULT ''"),
+                ("article_count", "INTEGER DEFAULT 0"),
+            ],
+            "news_articles": [
+                ("is_saved", "INTEGER DEFAULT 0"),
+            ],
+        }
+        for table, columns in migrates.items():
+            # 检查表是否存在
+            if table not in inspector.get_table_names():
+                continue
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            for col_name, col_type in columns:
+                if col_name not in existing:
+                    try:
+                        with db.engine.connect() as conn:
+                            conn.execute(sa_text(
+                                f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
+                            ))
+                            conn.commit()
+                        print(f"  ✅ 迁移: {table}.{col_name}")
+                    except Exception as e:
+                        print(f"  ⚠️ 迁移失败 {table}.{col_name}: {e}")
+    except Exception as e:
+        print(f"  ⚠️ 迁移跳过: {e}")
