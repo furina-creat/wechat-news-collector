@@ -7,7 +7,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
 body{background:#f1f5f9;color:#1e293b}
-.app{display:flex;flex-direction:column}
+.app{display:flex;flex-direction:column;height:100vh}
 .top{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:#fff;border-bottom:1px solid #e2e8f0}
 .top h1{font-size:18px;font-weight:600;color:#1a73e8}
 .stat{font-size:13px;color:#64748b;display:flex;align-items:center;gap:8px}
@@ -249,10 +249,6 @@ function renderPage(id) {
   else if (id === 'saved') renderSaved(el);
   else if (id === 'notify') renderNotify(el);
 }
-
-// ====== Dashboard ======
-}
-
 // ====== 收藏 ======
 function renderSaved(el) {
   el.innerHTML = '<h2>⭐ 收藏的文章</h2><div id="savedList"></div>';
