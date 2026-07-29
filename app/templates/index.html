@@ -209,6 +209,7 @@ var navItems = [
   {id:'export',title:'📥 数据导出'},
   {id:'mp_collect',title:'📡 公众号文章'},
   {id:'saved',title:'⭐ 收藏'},
+  {id:'notify',title:'🔔 通知设置'},
   {sep:true},
   {id:'kaoyan',title:'📚 考公考研'},
   {id:'job',title:'💼 应届求职'},
@@ -246,6 +247,7 @@ function renderPage(id) {
   else if (id === 'stock') renderCategory(el, '股票市场');
   else if (id === 'mp_collect') renderMPCollect(el);
   else if (id === 'saved') renderSaved(el);
+  else if (id === 'notify') renderNotify(el);
 }
 
 // ====== Dashboard ======
@@ -276,6 +278,86 @@ function renderSaved(el) {
 function toggleSave(id,btn){
   fetch('/api/source/'+id+'/save',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
     if(btn){btn.textContent=d.data.is_saved?'取消收藏':'收藏';btn.style.color=d.data.is_saved?'#ef4444':'#1a73e8'}
+  }).catch(function(){});
+}
+
+// ====== 通知设置 ======
+function renderNotify(el) {
+  el.innerHTML = '<h2>🔔 通知设置</h2>'
+    + '<div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">'
+    + '<div class="card"><div class="ch">📧 QQ 邮箱</div>'
+    + '<div class="fg"><label class="fl">SMTP 服务器</label><input class="fi" id="nfSmtp" value="smtp.qq.com"></div>'
+    + '<div class="fg"><label class="fl">端口</label><input class="fi" id="nfPort" value="465"></div>'
+    + '<div class="fg"><label class="fl">QQ 邮箱地址</label><input class="fi" id="nfFrom" placeholder="your@qq.com"></div>'
+    + '<div class="fg"><label class="fl">授权码</label><input class="fi" id="nfPass" type="password" placeholder="SMTP 授权码"></div>'
+    + '<div class="fg"><label class="fl">接收邮箱</label><input class="fi" id="nfTo" placeholder="接收通知的邮箱"></div></div>'
+    + '<div class="card"><div class="ch">💬 微信推送</div>'
+    + '<div class="fg"><label class="fl">微信桥接地址</label><input class="fi" id="nfWxUrl" value="http://127.0.0.1:8123"></div>'
+    + '<p style="font-size:13px;color:#94a3b8;margin:8px 0">需要本地 wechat-bridge 在运行</p>'
+    + '<div class="fg" style="margin-top:12px"><label class="fl">推送分类</label><div id="nfCats"></div></div></div></div>'
+    + '<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">'
+    + '<button class="btn bp" onclick="nfSave()">💾 保存设置</button>'
+    + '<button class="btn" onclick="nfTestEmail()">📧 测试邮件</button>'
+    + '<button class="btn" onclick="nfTestWechat()">💬 测试微信</button></div>'
+    + '<div id="nfMsg"></div>';
+  nfLoad();
+}
+var _nfCats = ['考公考研','应届求职','股票市场','综合'];
+function nfLoad() {
+  fetch('/api/notify/config').then(function(r){return r.json()}).then(function(d){
+    var c = d.data || {};
+    if(c.email_from) document.getElementById('nfFrom').value = c.email_from;
+    if(c.email_to) document.getElementById('nfTo').value = c.email_to;
+    if(c.smtp_host) document.getElementById('nfSmtp').value = c.smtp_host;
+    if(c.smtp_port) document.getElementById('nfPort').value = c.smtp_port;
+    if(c.wechat_bridge_url) document.getElementById('nfWxUrl').value = c.wechat_bridge_url;
+    var cats = c.notify_categories || _nfCats;
+    var h = '';
+    for(var i=0;i<_nfCats.length;i++){
+      var checked = cats.indexOf(_nfCats[i]) > -1 ? 'checked' : '';
+      h += '<label style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:13px">'
+        + '<input type="checkbox" '+checked+' value="'+_nfCats[i]+'" class="nfCat"> '+_nfCats[i]+'</label>';
+    }
+    document.getElementById('nfCats').innerHTML = h;
+  }).catch(function(){});
+}
+function nfSave() {
+  var cats = [];
+  document.querySelectorAll('.nfCat:checked').forEach(function(c){cats.push(c.value)});
+  var data = {
+    email_enabled: true,
+    smtp_host: document.getElementById('nfSmtp').value,
+    smtp_port: parseInt(document.getElementById('nfPort').value) || 465,
+    email_from: document.getElementById('nfFrom').value,
+    email_pass: document.getElementById('nfPass').value,
+    email_to: document.getElementById('nfTo').value,
+    wechat_bridge_url: document.getElementById('nfWxUrl').value,
+    wechat_enabled: true,
+    notify_on_crawl: true,
+    notify_categories: cats,
+  };
+  document.getElementById('nfMsg').innerHTML = '<div class="load">保存中...</div>';
+  fetch('/api/notify/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+  .then(function(r){return r.json()}).then(function(d){
+    document.getElementById('nfMsg').innerHTML = d.code===200
+      ? '<div class="alert as" style="padding:8px">✅ 设置已保存</div>'
+      : '<div class="alert ae" style="padding:8px">'+d.message+'</div>';
+  }).catch(function(){});
+}
+function nfTestEmail() {
+  document.getElementById('nfMsg').innerHTML = '<div class="load">发送中...</div>';
+  fetch('/api/notify/test/email',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    document.getElementById('nfMsg').innerHTML = d.code===200
+      ? '<div class="alert as" style="padding:8px">✅ '+d.message+'</div>'
+      : '<div class="alert ae" style="padding:8px">❌ '+d.message+'</div>';
+  }).catch(function(){});
+}
+function nfTestWechat() {
+  document.getElementById('nfMsg').innerHTML = '<div class="load">发送中...</div>';
+  fetch('/api/notify/test/wechat',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    document.getElementById('nfMsg').innerHTML = d.code===200
+      ? '<div class="alert as" style="padding:8px">✅ '+d.message+'</div>'
+      : '<div class="alert ae" style="padding:8px">❌ '+d.message+'</div>';
   }).catch(function(){});
 }
 

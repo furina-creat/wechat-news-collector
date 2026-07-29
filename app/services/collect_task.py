@@ -4,6 +4,7 @@ from datetime import datetime
 from app.models import NewsSource
 from app.services.crawler import CrawlerFactory
 from app import db
+from app.services.notifier import notify_new_articles
 
 
 class CollectScheduler:
@@ -54,6 +55,12 @@ class CollectScheduler:
                 source.last_crawl_at = now
                 crawler = CrawlerFactory.get_crawler(source)
                 articles = crawler.run()
+                if articles:
+                    notify_new_articles(
+                        [{"title": a.title, "category": a.category, "source_site": source.name}
+                         for a in articles],
+                        source_name=source.name,
+                    )
                 source.article_count = (source.article_count or 0) + len(articles)
                 source.last_error = ''
                 print(f"[{now}] 采集 [{source.name}]: 新增 {len(articles)} 篇")
