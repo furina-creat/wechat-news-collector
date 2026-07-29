@@ -68,9 +68,11 @@ class BaseCrawler:
             saved.append(article)
         db.session.commit()
         # 限制总文章数不超过100篇，超出时删除最旧的
+        # 限制总文章数，超出时删除最旧的（新文章自动替代旧文章）
+        _MAX_ARTICLES = 500
         total = NewsArticle.query.count()
-        if total > 100:
-            exceed = total - 100
+        if total > _MAX_ARTICLES:
+            exceed = total - _MAX_ARTICLES
             oldest = NewsArticle.query.order_by(NewsArticle.collected_at.asc()).limit(exceed).all()
             for o in oldest:
                 db.session.delete(o)
