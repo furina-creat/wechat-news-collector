@@ -107,7 +107,7 @@ def create_app(config_class='app.config.Config'):
         import os
         # 清理过时年份的文章
         import re
-        _cy = datetime.now().year
+        _cy = __import__('datetime').datetime.now().year
         for a in NewsArticle.query.all():
             ys = re.findall(r'20\d{2}', a.title or '')
             if ys and min(int(y) for y in ys) < _cy - 1:
