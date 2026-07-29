@@ -51,8 +51,14 @@ class CollectScheduler:
                     continue  # 未到采集间隔
             
             try:
+                source.last_crawl_at = now
                 crawler = CrawlerFactory.get_crawler(source)
                 articles = crawler.run()
+                source.article_count = (source.article_count or 0) + len(articles)
+                source.last_error = ''
                 print(f"[{now}] 采集 [{source.name}]: 新增 {len(articles)} 篇")
             except Exception as e:
+                source.last_crawl_at = now
+                source.last_error = str(e)[:200]
                 print(f"[{now}] 采集失败 [{source.name}]: {e}")
+        db.session.commit()

@@ -33,6 +33,9 @@ class NewsSource(db.Model):
     category = db.Column(db.String(50), default='综合')
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    last_crawl_at = db.Column(db.DateTime, comment='最近采集时间')
+    last_error = db.Column(db.String(300), default='', comment='最近错误')
+    article_count = db.Column(db.Integer, default=0, comment='累计文章数')
     
     articles = db.relationship('NewsArticle', backref='source', lazy=True)
 
@@ -49,6 +52,7 @@ class NewsArticle(db.Model):
     source_id = db.Column(db.Integer, db.ForeignKey('news_sources.id'))
     collected_at = db.Column(db.DateTime, default=datetime.now)
     is_duplicate = db.Column(db.Boolean, default=False)
+    is_saved = db.Column(db.Boolean, default=False, comment='用户收藏')
     category = db.Column(db.String(50), default='综合')
 
 class WechatUserInfo(db.Model):

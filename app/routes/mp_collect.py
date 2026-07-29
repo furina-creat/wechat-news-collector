@@ -7,7 +7,8 @@
 import logging
 from datetime import datetime
 
-from flask import Blueprint, request, jsonify
+    from flask import Blueprint, request, jsonify, current_app
+    import threading
 from app import db
 from app.models import NewsArticle, WeChatMPAccount
 from app.services.mp_collector import crawl_account, crawl_all_accounts
@@ -203,7 +204,19 @@ def forward_article():
     )
     db.session.add(article)
     db.session.commit()
-
+    from app.services.mp_collector import fetch_article_content
+    _aid, _url = article.id, url
+    def _fetch_full():
+        import time
+        time.sleep(1)
+        with current_app.app_context():
+            a = NewsArticle.query.get(_aid)
+            if a and (not a.content or len(a.content) < 50):
+                full = fetch_article_content(_url)
+                if full:
+                    a.content = full
+                    db.session.commit()
+    threading.Thread(target=_fetch_full, daemon=True).start()
     logger.info(f"公众号文章自动入库: 《{title}》")
     return jsonify({"code": 200, "message": "已入库", "data": {"id": article.id}})
 

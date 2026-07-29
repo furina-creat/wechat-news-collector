@@ -208,6 +208,7 @@ var navItems = [
   {id:'search',title:'🔍 信息检索'},
   {id:'export',title:'📥 数据导出'},
   {id:'mp_collect',title:'📡 公众号文章'},
+  {id:'saved',title:'⭐ 收藏'},
   {sep:true},
   {id:'kaoyan',title:'📚 考公考研'},
   {id:'job',title:'💼 应届求职'},
@@ -244,6 +245,38 @@ function renderPage(id) {
   else if (id === 'job') renderCategory(el, '应届求职');
   else if (id === 'stock') renderCategory(el, '股票市场');
   else if (id === 'mp_collect') renderMPCollect(el);
+  else if (id === 'saved') renderSaved(el);
+}
+
+// ====== Dashboard ======
+}
+
+// ====== 收藏 ======
+function renderSaved(el) {
+  el.innerHTML = '<h2>⭐ 收藏的文章</h2><div id="savedList"></div>';
+  fetch('/api/source/saved').then(function(r){return r.json()}).then(function(d){
+    var items = d.data || [];
+    var h = '';
+    if (!items.length) { h = '<div class="em">还没有收藏的文章</div>'; }
+    else {
+      h = '<table><tr><th>标题</th><th>来源</th><th>分类</th><th></th></tr>';
+      for (var i=0;i<items.length;i++) {
+        var a=items[i];
+        h += '<tr><td><a href="/page/'+a.id+'" style="color:#1a73e8;text-decoration:none;font-weight:500">'+a.title+'</a></td>'
+          + '<td>'+(a.source||'-')+'</td>'
+          + '<td><span class="tag ta">'+(a.category||'综合')+'</span></td>'
+          + '<td><button class="btn" style="padding:3px 8px;font-size:12px;color:#ef4444" onclick="toggleSave('+a.id+',this)">取消收藏</button></td></tr>';
+      }
+      h += '</table>';
+    }
+    document.getElementById('savedList').innerHTML = h;
+  }).catch(function(){});
+}
+
+function toggleSave(id,btn){
+  fetch('/api/source/'+id+'/save',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
+    if(btn){btn.textContent=d.data.is_saved?'取消收藏':'收藏';btn.style.color=d.data.is_saved?'#ef4444':'#1a73e8'}
+  }).catch(function(){});
 }
 
 // ====== Dashboard ======

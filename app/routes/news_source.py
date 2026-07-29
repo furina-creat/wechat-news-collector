@@ -130,3 +130,37 @@ def add_default_sources():
             count += 1
     db.session.commit()
     return success({"added": count, "total": NewsSource.query.count()}, f"添加了 {count} 个默认新闻源")
+
+
+@source_bp.route('/health', methods=['GET'])
+def source_health():
+    sources = NewsSource.query.order_by(NewsSource.last_crawl_at.desc().nullslast()).all()
+    return success([{
+        'id': s.id, 'name': s.name, 'url': s.url[:50],
+        'type': s.source_type, 'status': s.status,
+        'crawl_interval': s.crawl_interval,
+        'last_crawl': s.last_crawl_at.isoformat() if s.last_crawl_at else None,
+        'last_error': s.last_error or '',
+        'article_count': s.article_count or 0,
+    } for s in sources])
+
+
+@source_bp.route('/saved', methods=['GET'])
+def list_saved():
+    from app.models import NewsArticle
+    articles = NewsArticle.query.filter_by(is_saved=True).order_by(NewsArticle.collected_at.desc()).limit(100).all()
+    return success([{
+        'id': a.id, 'title': a.title, 'content': (a.content or '')[:120],
+        'source': a.source_site, 'category': a.category,
+        'url': a.url,
+        'collected_at': a.collected_at.isoformat() if a.collected_at else None,
+    } for a in articles])
+
+
+@source_bp.route('/<int:article_id>/save', methods=['POST'])
+def toggle_save(article_id):
+    from app.models import NewsArticle
+    article = NewsArticle.query.get_or_404(article_id)
+    article.is_saved = not article.is_saved
+    db.session.commit()
+    return success({'id': article.id, 'is_saved': article.is_saved})
