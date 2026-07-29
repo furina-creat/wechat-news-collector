@@ -308,7 +308,7 @@ def _run_migration():
         inspector = inspect(db.engine)
         migrates = {
             "news_sources": [
-                ("last_crawl_at", "DATETIME"),
+            ("last_crawl_at", "TIMESTAMP"),
                 ("last_error", "VARCHAR(300) DEFAULT ''"),
                 ("article_count", "INTEGER DEFAULT 0"),
             ],

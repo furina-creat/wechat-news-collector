@@ -164,3 +164,25 @@ def toggle_save(article_id):
     article.is_saved = not article.is_saved
     db.session.commit()
     return success({'id': article.id, 'is_saved': article.is_saved})
+
+
+@source_bp.route('/recategorize', methods=['POST'])
+def recategorize_all():
+    """重新分类所有已有文章（修复爬虫关键词收紧前的错误分类）。"""
+    from app.models import NewsArticle
+    import re as _re
+    count = 0
+    for a in NewsArticle.query.all():
+        t = (a.title or '') + ' ' + (a.content or '')
+        new_cat = '综合'
+        if any(k in t for k in ['考研','考公','公务员','行测','招生','研究生','复试','考点','备考','录取','分数线','国考','省考','申论','事业单位','教师招聘']):
+            new_cat = '考公考研'
+        elif any(k in t for k in ['招聘','求职','简历','就业','实习','校招','管培生','应届生','秋招','春招']):
+            new_cat = '应届求职'
+        elif any(k in t for k in ['股票','股市','大盘','涨停','跌停','上证','深证','创业板','科创板','恒生','A股','港股','美股','基金','ETF','牛市','熊市','涨幅','跌幅','成交额','板块','指数','开盘','收盘','投资','估值','行情','回调','反弹','仓位','持仓']):
+            new_cat = '股票市场'
+        if a.category != new_cat:
+            a.category = new_cat
+            count += 1
+    db.session.commit()
+    return success({'recategorized': count, 'total': NewsArticle.query.count()})
