@@ -1,4 +1,5 @@
 from flask import Blueprint, request, make_response
+from datetime import datetime, timedelta
 from app.models import NewsArticle, WechatUserInfo, NewsSource
 from app.utils.response import success
 
@@ -71,8 +72,10 @@ def search_by_category():
     per_page = min(request.args.get('per_page', 20, type=int), 100)
     
     # Find sources in this category
+    cutoff = datetime.now() - timedelta(days=180)
     pagination = NewsArticle.query.filter(
-        NewsArticle.category == category
+        NewsArticle.category == category,
+        NewsArticle.collected_at >= cutoff
     ).order_by(NewsArticle.collected_at.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
