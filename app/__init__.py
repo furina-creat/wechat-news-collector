@@ -104,6 +104,8 @@ def create_app(config_class='app.config.Config'):
 
     with app.app_context():
         _run_migration()
+        from app.models import NewsSource, NewsArticle
+        from datetime import datetime
         import os
         # 清理过时年份的文章
         import re
@@ -114,8 +116,6 @@ def create_app(config_class='app.config.Config'):
                 db.session.delete(a)
         db.session.commit()
         os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'instance'), exist_ok=True)
-        from app.models import NewsSource, NewsArticle
-        from datetime import datetime
         try:
         # 添加种子源（检查每个源的URL是否已存在，避免重复）
             all_sources = [
