@@ -102,6 +102,14 @@ def create_app(config_class='app.config.Config'):
     with app.app_context():
         _run_migration()
         import os
+        # 清理过时年份的文章
+        import re
+        _cy = datetime.now().year
+        for a in NewsArticle.query.all():
+            ys = re.findall(r'20\d{2}', a.title or '')
+            if ys and min(int(y) for y in ys) < _cy - 1:
+                db.session.delete(a)
+        db.session.commit()
         os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'instance'), exist_ok=True)
         from app.models import NewsSource, NewsArticle
         from datetime import datetime

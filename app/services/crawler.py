@@ -41,13 +41,19 @@ class BaseCrawler:
     
     def save_articles(self, articles_data):
         """保存文章，自动去重，根据标题关键词自动分类"""
+        import re
+        _cy = __import__('datetime').datetime.now().year
         saved = []
         for data in articles_data:
+            _t = (data.get('title') or '') + ' ' + (data.get('content') or '')
+            _ys = re.findall(r'20\d{2}', _t)
+            if _ys and min(int(y) for y in _ys) < _cy - 1:
+                continue
             existing = NewsArticle.query.filter_by(url=data.get('url')).first()
             if existing:
                 continue
             cat = '综合'
-            t = (data.get('title') or '') + ' ' + (data.get('content') or '')
+            t = _t
             if any(k in t for k in ['考研','考公','公务员','行测','招生','研究生','复试','考点','备考','录取','分数线','国考','省考','申论','事业单位','教师招聘']):
                 cat = '考公考研'
             elif any(k in t for k in ['招聘','求职','简历','就业','实习','校招','管培生','应届生','秋招','春招']):
