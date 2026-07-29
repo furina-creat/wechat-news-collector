@@ -34,7 +34,9 @@ def _start_scheduler(app):
         try:
             sources = NewsSource.query.filter_by(status='启用').all()
             total_new = 0
-            for src in sources[:3]:
+            for src in sources:
+                if 'example.com' in (src.url or ''):
+                    continue
                 try:
                     crawler = CrawlerFactory.get_crawler(src)
                     articles = crawler.run()
