@@ -70,8 +70,11 @@ def create_app(config_class='app.config.Config'):
         
         info = '\u6765\u6e90: ' + (article.source_site or '-')
         info += ' | \u5206\u7c7b: ' + category
-        if article.publish_time:
-            info += ' | ' + article.publish_time.strftime('%Y-%m-%d %H:%M')
+        _dt = article.publish_time or article.collected_at
+        if _dt:
+            info += ' | ' + _dt.strftime('%Y-%m-%d %H:%M')
+        else:
+            info += ' | 日期未知'
         
         title = article.title
         html_content = ('<!DOCTYPE html>\n<html lang="zh-CN">\n<head><meta charset="UTF-8">'

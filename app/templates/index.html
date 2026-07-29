@@ -214,6 +214,7 @@ var navItems = [
   {id:'kaoyan',title:'📚 考公考研'},
   {id:'job',title:'💼 应届求职'},
   {id:'stock',title:'📈 股票市场'},
+  {id:'general',title:'🗞️ 综合资讯'},
 ];
 
 function renderNav() {
@@ -245,6 +246,7 @@ function renderPage(id) {
   else if (id === 'kaoyan') renderCategory(el, '考公考研');
   else if (id === 'job') renderCategory(el, '应届求职');
   else if (id === 'stock') renderCategory(el, '股票市场');
+  else if (id === 'general') renderCategory(el, '综合');
   else if (id === 'mp_collect') renderMPCollect(el);
   else if (id === 'saved') renderSaved(el);
   else if (id === 'notify') renderNotify(el);
@@ -424,7 +426,7 @@ function loadCategory(cat) {
       if (items.length) {
         var h2 = '<table><tr><th>标题</th><th>来源</th><th>时间</th></tr>';
                 for (var i = 0; i < items.length; i++) {
-          var t = items[i].publish_time ? new Date(items[i].publish_time).toLocaleDateString() : '-';
+var t = items[i].publish_time ? new Date(items[i].publish_time).toLocaleDateString() : (items[i].collected_at ? new Date(items[i].collected_at).toLocaleDateString() : '-');
           var linkHtml = '<a href="/page/'+items[i].id+'" style="color:#1a73e8;text-decoration:none;font-weight:500">'+items[i].title+' <span style="font-size:11px">↗</span></a>';
           var preview = (items[i].content||'').substring(0,80);
           h2 += '<tr><td>'+linkHtml+'<br><span style="font-size:12px;color:#94a3b8">'+preview+'</span></td><td>'+(items[i].source||'-')+'</td><td>'+t+'</td></tr>';
@@ -640,7 +642,7 @@ function doSearch() {
     for (var i = 0; i < items.length; i++) {
       var a = items[i];
       h += '<tr><td>'+a.title+'</td><td>'+(a.source||'-')+'</td>'
-        + '<td>'+(a.publish_time?new Date(a.publish_time).toLocaleDateString():'-')+'</td>'
+        + '<td>'+(a.publish_time?new Date(a.publish_time).toLocaleDateString():a.collected_at?new Date(a.collected_at).toLocaleDateString():'-')+'</td>'
         + '<td><a href="/page/'+a.id+'" class="btn bp" style="padding:4px 10px;font-size:12px">查看详情</a>'
         + (a.url?' <a href="'+a.url+'" target="_blank" style="padding:4px 8px;font-size:12px;color:#94a3b8;text-decoration:none">来源 ↗</a>':'')+'</td></tr>';
     }
