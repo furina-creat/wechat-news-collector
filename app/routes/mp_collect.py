@@ -7,8 +7,8 @@
 import logging
 from datetime import datetime
 
-    from flask import Blueprint, request, jsonify, current_app
-    import threading
+from flask import Blueprint, request, jsonify, current_app
+import threading
 from app import db
 from app.models import NewsArticle, WeChatMPAccount
 from app.services.mp_collector import crawl_account, crawl_all_accounts
