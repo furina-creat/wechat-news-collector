@@ -107,14 +107,6 @@ def create_app(config_class='app.config.Config'):
         from app.models import NewsSource, NewsArticle
         from datetime import datetime
         import os
-        # 清理过时年份的文章
-        import re
-        _cy = __import__('datetime').datetime.now().year
-        for a in NewsArticle.query.all():
-            ys = re.findall(r'20\d{2}', a.title or '')
-            if ys and min(int(y) for y in ys) < _cy - 1:
-                db.session.delete(a)
-        db.session.commit()
         os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'instance'), exist_ok=True)
         try:
         # 添加种子源（检查每个源的URL是否已存在，避免重复）
