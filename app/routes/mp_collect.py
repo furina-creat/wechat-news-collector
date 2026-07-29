@@ -172,6 +172,42 @@ def add_article():
     return jsonify({"code": 200, "message": f"已添加《{title}》", "data": {"id": article.id}})
 
 
+@mp_collect_bp.route("/forward", methods=["POST"])
+def forward_article():
+    """接收 wechat-bridge 转发的公众号文章。"""
+    data = request.json or {}
+    title = (data.get("title") or "").strip()
+    url = (data.get("url") or "").strip()
+    account = (data.get("account") or data.get("source", "")).strip()
+    abstract = (data.get("abstract") or data.get("content", "")).strip()
+
+    if not title or not url:
+        return jsonify({"code": 400, "message": "缺少标题或链接"}), 400
+
+    # 去重
+    existing = NewsArticle.query.filter_by(url=url).first()
+    if existing:
+        return jsonify({"code": 200, "message": "已存在，跳过"})
+
+    cat = "考公考研" if account and ("招考" in account or "考" in account) else "综合"
+    from app.services.mp_collector import _auto_category
+    cat = _auto_category(title, abstract)
+
+    article = NewsArticle(
+        title=title,
+        content=abstract,
+        url=url,
+        source_site=f"公众号:{account}" if account else "公众号:自动转发",
+        category=cat,
+        collected_at=datetime.now(),
+    )
+    db.session.add(article)
+    db.session.commit()
+
+    logger.info(f"公众号文章自动入库: 《{title}》")
+    return jsonify({"code": 200, "message": "已入库", "data": {"id": article.id}})
+
+
 @mp_collect_bp.route("/stats", methods=["GET"])
 def stats():
     """公众号采集统计。"""
