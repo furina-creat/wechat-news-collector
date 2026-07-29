@@ -22,6 +22,7 @@ def create_app(config_class='app.config.Config'):
     from app.routes.collect import collect_bp
     from app.routes.search import search_bp
     from app.routes.export import export_bp
+    from app.routes.wechat_mp import wechat_mp_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(wechat_bp, url_prefix='/api/wechat')
@@ -29,6 +30,7 @@ def create_app(config_class='app.config.Config'):
     app.register_blueprint(collect_bp, url_prefix='/api/collect')
     app.register_blueprint(search_bp, url_prefix='/api/search')
     app.register_blueprint(export_bp, url_prefix='/api/export')
+    app.register_blueprint(wechat_mp_bp)
     
     # Home page
     @app.route('/')
@@ -94,6 +96,8 @@ def create_app(config_class='app.config.Config'):
 
     # 种子数据（首次运行自动创建）
     with app.app_context():
+        import os
+        os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'instance'), exist_ok=True)
         from app.models import NewsSource, NewsArticle
         from datetime import datetime
         try:

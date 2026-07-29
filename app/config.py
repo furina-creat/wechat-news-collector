@@ -17,6 +17,9 @@ class Config:
     WECHAT_APP_ID = os.getenv('WECHAT_APP_ID', '')
     WECHAT_APP_SECRET = os.getenv('WECHAT_APP_SECRET', '')
     
+    # 微信公众号消息服务配置
+    WECHAT_MP_TOKEN = os.getenv('WECHAT_MP_TOKEN', '')
+    
     # 采集配置
     MAX_CONCURRENT_SOURCES = 10
     DEFAULT_CRAWL_INTERVAL = 5  # 分钟
