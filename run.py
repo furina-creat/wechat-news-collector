@@ -37,7 +37,7 @@ def _migrate_db():
             ("article_count", "INTEGER DEFAULT 0"),
         ],
         "news_articles": [
-            ("is_saved", "BOOLEAN DEFAULT 0"),
+            ("is_saved", "INTEGER DEFAULT 0"),
         ],
     }
     for table, columns in migrates.items():
