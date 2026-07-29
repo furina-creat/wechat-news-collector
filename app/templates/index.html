@@ -556,6 +556,7 @@ function renderMPCollect(el) {
     + '<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">'
     + '<button class="btn bp" onclick="showAddMPAccount()">+ 添加公众号</button>'
     + '<button class="btn bg" onclick="mpCrawlAll()">🔄 采集全部</button>'
+    + '<button class="btn" onclick="showAddMPArticle()">📝 手动添加文章</button>'
     + '<button class="btn" onclick="mpRefresh()">🔄 刷新</button></div>'
     + '<div id="mpStats"></div>'
     + '<div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:16px">'
@@ -660,6 +661,24 @@ function mpCrawlAll(){
   fetch('/api/mp-collect/crawl-all',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
     mpLoad();
   }).catch(function(){document.getElementById('mpArticles').innerHTML='<div class="alert ae">批量采集失败</div>'});
+}
+
+function cmMPArt(){document.getElementById('mpModalArticle').style.display='none'}
+function showAddMPArticle(){document.getElementById('mpModalArticle').style.display='flex';document.getElementById('mpArtMsg').innerHTML=''}
+
+function mpAddArticle(){
+  var url=document.getElementById('mpArtUrl').value.trim();
+  var title=document.getElementById('mpArtTitle').value.trim();
+  var account=document.getElementById('mpArtAccount').value.trim();
+  var abs=document.getElementById('mpArtAbstract').value.trim();
+  var msg=document.getElementById('mpArtMsg');
+  if(!url||!title){msg.innerHTML='<div class="alert ae" style="padding:8px">请填写链接和标题</div>';return}
+  fetch('/api/mp-collect/articles',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({url:url,title:title,account:account,abstract:abs})})
+  .then(function(r){return r.json()}).then(function(d){
+    if(d.code===200){cmMPArt();mpLoad()}
+    else msg.innerHTML='<div class="alert ae" style="padding:8px">'+d.message+'</div>';
+  }).catch(function(){msg.innerHTML='<div class="alert ae" style="padding:8px">网络错误</div>'});
 }
 
 // ====== Utilities ======
@@ -806,3 +825,16 @@ function logout() {
 // Check login state on page load
 </script>
 </html>
+    + '<div id="mpModalArticle" class="mo" style="display:none"><div class="mb"><div class="mh">'
+    + '<span class="mt">手动添加文章</span>'
+    + '<button class="mc" onclick="cmMPArt()">x</button></div>'
+    + '<div class="md"><div class="fg"><label class="fl">文章链接 *</label>'
+    + '<input class="fi" id="mpArtUrl" placeholder="https://mp.weixin.qq.com/s/..."></div>'
+    + '<div class="fg"><label class="fl">文章标题 *</label>'
+    + '<input class="fi" id="mpArtTitle" placeholder="输入文章标题"></div>'
+    + '<div class="fg"><label class="fl">公众号名称</label>'
+    + '<input class="fi" id="mpArtAccount" placeholder="如 重庆招考"></div>'
+    + '<div class="fg"><label class="fl">摘要（可选）</label>'
+    + '<textarea class="fi" id="mpArtAbstract" rows="2" style="resize:vertical"></textarea></div>'
+    + '<button class="btn bp" onclick="mpAddArticle()">确认添加</button>'
+    + '<div id="mpArtMsg" style="margin-top:8px"></div></div></div></div>'

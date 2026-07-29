@@ -136,6 +136,42 @@ def list_articles():
     })
 
 
+@mp_collect_bp.route("/articles", methods=["POST"])
+def add_article():
+    """手动添加一篇公众号文章。"""
+    data = request.json or {}
+    url = (data.get("url") or "").strip()
+    title = (data.get("title") or "").strip()
+    account = (data.get("account") or "").strip()
+
+    if not url:
+        return jsonify({"code": 400, "message": "请输入文章链接"}), 400
+    if not title:
+        return jsonify({"code": 400, "message": "请输入文章标题"}), 400
+
+    # 去重
+    existing = NewsArticle.query.filter_by(url=url).first()
+    if existing:
+        return jsonify({"code": 400, "message": "该文章已存在"}), 400
+
+    # 自动分类
+    from app.services.mp_collector import _auto_category
+    cat = _auto_category(title, data.get("abstract", ""))
+
+    article = NewsArticle(
+        title=title,
+        content=data.get("abstract", ""),
+        url=url,
+        source_site=f"公众号:{account}" if account else "公众号:手动添加",
+        category=cat,
+        collected_at=datetime.now(),
+    )
+    db.session.add(article)
+    db.session.commit()
+
+    return jsonify({"code": 200, "message": f"已添加《{title}》", "data": {"id": article.id}})
+
+
 @mp_collect_bp.route("/stats", methods=["GET"])
 def stats():
     """公众号采集统计。"""

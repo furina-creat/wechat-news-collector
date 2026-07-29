@@ -12,35 +12,69 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import re
+import logging
+import time
+from datetime import datetime
+from urllib.parse import urljoin, quote
+
+import requests
+from bs4 import BeautifulSoup
+
 from app import db
 from app.models import NewsArticle, WeChatMPAccount
 
 logger = logging.getLogger(__name__)
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/125.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-}
+
+def _session():
+    """创建一个带浏览器特征的请求会话。"""
+    s = requests.Session()
+    s.headers.update({
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/126.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Referer": "https://weixin.sogou.com/",
+    })
+    # 先访问首页获取 cookie
+    try:
+        s.get("https://weixin.sogou.com/", timeout=10)
+    except Exception:
+        pass
+    return s
 
 
-def search_articles(account_name, max_pages=2):
+def search_sogou(account_name, max_pages=2):
     """通过搜狗微信搜索公众号的文章。
 
-    返回格式：[{"title":.., "url":.., "abstract":.., "source":.., "date":..}]
+    返回格式：[{"title":..., "url":..., "abstract":..., "source":..., "date":...}]
     """
     results = []
-    session = requests.Session()
-    session.headers.update(HEADERS)
+    session = _session()
 
     for page in range(1, max_pages + 1):
         url = (
             f"https://weixin.sogou.com/weixin"
-            f"?type=2&s_from=input&query={account_name}&ie=utf8"
+            f"?type=2&s_from=input&query={quote(account_name)}&ie=utf8"
             f"&_sug_=n&_sug_type_=&page={page}"
         )
         try:
@@ -48,43 +82,66 @@ def search_articles(account_name, max_pages=2):
             resp.encoding = "utf-8"
             html = resp.text
         except Exception as e:
-            logger.warning(f"搜狗搜索第{page}页失败: {e}")
+            logger.warning(f"搜狗第{page}页失败: {e}")
             continue
 
-        soup = BeautifulSoup(html, "lxml")
-        items = soup.select(".news-list2 .news-box")
+        # 检测反爬
+        if "window.location" in html and "请输入验证码" in html:
+            logger.warning("搜狗反爬验证，等待后重试...")
+            time.sleep(5)
+            try:
+                resp = session.get(url, timeout=15)
+                resp.encoding = "utf-8"
+                html = resp.text
+            except Exception:
+                break
 
-        if not items:
-            # 备用选择器
-            items = soup.select(".wx-rb .wx-rb-item") or []
-        if not items:
-            logger.info(f"搜狗第{page}页无结果，可能被反爬")
+        # 搜狗页面结构：每个结果在 .news-box 中
+        soup = BeautifulSoup(html, "lxml")
+        boxes = soup.select(".news-box")
+
+        if not boxes:
+            logger.info(f"搜狗第{page}页无结果")
             break
 
-        for item in items:
+        for box in boxes:
             try:
-                title_el = item.select_one("h3 a, .tit a, .wx-rb-title a")
+                # 标题 & 链接 —— 在 .txt-box 中的第一个 a
+                title_el = box.select_one(".txt-box a")
                 if not title_el:
                     continue
                 title = title_el.get_text(strip=True)
-                article_url = title_el.get("href", "")
-                if article_url and not article_url.startswith("http"):
-                    article_url = "https://weixin.sogou.com" + article_url
+                rel_link = title_el.get("href", "")
 
-                abstract_el = item.select_one(".txt-info, .wx-rb-abstract, p")
-                abstract = abstract_el.get_text(strip=True) if abstract_el else ""
+                # 搜狗的链接是 /link?url=xxx，需要组装
+                article_url = ""
+                if rel_link:
+                    article_url = urljoin("https://weixin.sogou.com", rel_link)
+                    # 尝试跟随一次获取真实 URL
+                    try:
+                        follow = session.get(article_url, timeout=10, allow_redirects=True)
+                        if follow.url and "mp.weixin.qq.com" in follow.url:
+                            article_url = follow.url
+                    except Exception:
+                        pass
 
-                # 来源（公众号名称）
-                src_el = item.select_one(".account, .wx-rb-source, .s-p")
+                # 摘要
+                abstract = ""
+                abstract_el = box.select_one(".txt-box .str_info")
+                if abstract_el:
+                    abstract = abstract_el.get_text(strip=True)
+
+                # 来源
                 source_name = account_name
-                if src_el:
-                    sn = src_el.get_text(strip=True)
-                    if sn:
-                        source_name = sn
+                src_el = box.select_one(".txt-box .s-p")
+                if src_el and src_el.get_text(strip=True):
+                    source_name = src_el.get_text(strip=True)
 
                 # 日期
-                date_el = item.select_one(".time, .wx-rb-date, span.s2")
-                date_str = date_el.get_text(strip=True) if date_el else ""
+                date_str = ""
+                date_el = box.select_one(".txt-box .s2")
+                if date_el:
+                    date_str = date_el.get_text(strip=True)
 
                 if title and article_url:
                     results.append({
@@ -97,9 +154,44 @@ def search_articles(account_name, max_pages=2):
             except Exception as e:
                 logger.debug(f"解析单条失败: {e}")
 
-        time.sleep(1.5)  # 礼貌间隔
+        time.sleep(2)
 
     return results
+
+
+def fetch_article_content(url):
+    """获取微信文章的正文内容。"""
+    try:
+        resp = requests.get(url, headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+        }, timeout=15)
+        resp.encoding = "utf-8"
+        soup = BeautifulSoup(resp.text, "lxml")
+        content_el = soup.select_one("#js_content, .rich_media_content, article")
+        if content_el:
+            return content_el.get_text(strip=True)[:2000]
+        return ""
+    except Exception as e:
+        logger.warning(f"获取正文失败: {url[:50]} - {e}")
+        return ""
+
+
+def _auto_category(title, abstract):
+    """自动判断分类。"""
+    t = (title or "") + " " + (abstract or "")
+    if any(k in t for k in ['考研', '考公', '公务员', '行测', '教育', '招生',
+                              '研究生', '复试', '考点', '备考', '录取', '分数线',
+                              '学位', '学历', '大学', '高校', '国考', '省考',
+                              '申论', '事业单位', '教师招聘']):
+        return '考公考研'
+    if any(k in t for k in ['招聘', '求职', '面试', '简历', '职场', '就业',
+                              '实习', 'offer', '校招', '薪水', '工资', '待遇',
+                              '跳槽', '裁员', '猎头', '管培生', '应届生', '秋招']):
+        return '应届求职'
+    if any(k in t for k in ['股票', '股市', '大盘', '涨停', '跌停', '上证',
+                              'A股', '港股', '基金', '投资', '行情', '板块']):
+        return '股票市场'
+    return '综合'
 
 
 def fetch_article_content(url):
@@ -150,7 +242,7 @@ def crawl_account(account_id):
     name = acct.name
     logger.info(f"开始采集公众号: {name}")
 
-    articles = search_articles(name, max_pages=2)
+    articles = search_sogou(name, max_pages=2)
     logger.info(f"搜到 {len(articles)} 篇")
 
     saved = 0
